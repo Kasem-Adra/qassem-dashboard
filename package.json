@@ -1,0 +1,27 @@
+{
+  "name": "qassem-ai-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Enterprise AI Operating System monorepo for Qassem.net",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "format": "prettier --write .",
+    "web": "pnpm --filter @qassem/web dev",
+    "worker": "pnpm --filter @qassem/workers dev",
+    "db:generate": "pnpm --filter @qassem/web db:generate",
+    "db:migrate": "pnpm --filter @qassem/web db:migrate",
+    "db:studio": "pnpm --filter @qassem/web db:studio",
+    "test": "turbo test",
+    "audit:repo": "node scripts/audit-repo.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "prettier": "latest",
+    "turbo": "latest",
+    "typescript": "latest"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@qassem/ui": [
+        "../../packages/ui/src"
+      ],
+      "@qassem/theme-engine": [
+        "../../packages/theme-engine/src"
+      ],
+      "@qassem/ai-core": [
+        "../../packages/ai-core/src"
+      ],
+      "@qassem/runtime-core": [
+        "../../packages/runtime-core/src"
+      ],
+      "@qassem/realtime": [
+        "../../packages/realtime/src"
+      ],
+      "@qassem/abos-core": [
+        "../../packages/abos-core/src"
+      ]
+    },
+    "baseUrl": "."
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

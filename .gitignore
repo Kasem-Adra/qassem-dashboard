@@ -1,0 +1,35 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+.next/
+out/
+dist/
+.turbo/
+apps/web/.next/
+
+# env / secrets
+.env
+.env.*
+!.env.example
+!apps/web/.env.example
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+# generated local tooling
+.wrangler/
+apps/workers/.wrangler/
+coverage/
+.nyc_output/
+
+# local-only generated audits
+.audit/
