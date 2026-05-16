@@ -11,10 +11,14 @@
 
 html,
 body {
+ codex/continue-implementing-the-dashboard
   background: #f8fafc;
 }
 
 body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+
+  background: #f7f8fb;
+ main
 }

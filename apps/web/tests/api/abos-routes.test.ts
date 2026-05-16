@@ -12,6 +12,7 @@ import { GET as risksGet } from "../../app/api/abos/risks/route"
 import { POST as seedPost } from "../../app/api/abos/seed/route"
 import { POST as setupPost } from "../../app/api/abos/setup/route"
 import { GET as streamGet } from "../../app/api/abos/stream/route"
+ codex/continue-implementing-the-dashboard
 import {
   GET as siteContentGet,
   POST as siteContentPost,
@@ -20,6 +21,12 @@ import { POST as loginPost } from "../../app/api/auth/login/route"
 import { POST as logoutPost } from "../../app/api/auth/logout/route"
 import { GET as sessionGet } from "../../app/api/auth/session/route"
 import { resetWebsiteContent } from "../../lib/website-content"
+
+import { GET as siteContentGet, POST as siteContentPost } from "../../app/api/site/content/route"
+import { POST as loginPost } from "../../app/api/auth/login/route"
+import { POST as logoutPost } from "../../app/api/auth/logout/route"
+import { GET as sessionGet } from "../../app/api/auth/session/route"
+ main
 
 const baseUrl = "http://localhost:3000"
 
@@ -64,9 +71,13 @@ describe("ABOS API routes", () => {
   })
 
   it("reports method errors through the API envelope", async () => {
+ codex/continue-implementing-the-dashboard
     const response = await healthGet(
       request("/api/abos/health", { method: "POST" }),
     )
+
+    const response = await healthGet(request("/api/abos/health", { method: "POST" }))
+ main
     const body = await json(response)
 
     expect(response.status).toBe(405)
@@ -82,7 +93,11 @@ describe("ABOS API routes", () => {
         method: "POST",
         body: "{not-json",
         headers: { "content-type": "application/json" },
+ codex/continue-implementing-the-dashboard
       }),
+
+      })
+ main
     )
     const body = await json(response)
 
@@ -91,6 +106,10 @@ describe("ABOS API routes", () => {
     expect(body).toMatchObject({ ok: false, error: "Invalid JSON body" })
   })
 
+ codex/continue-implementing-the-dashboard
+
+
+ main
   it("serves website content for the public website", async () => {
     const response = await siteContentGet(request("/api/site/content"))
     const body = await json(response)
@@ -98,14 +117,20 @@ describe("ABOS API routes", () => {
     expect(response.status).toBe(200)
     expectApiProtectionHeaders(response)
     expect(body.content).toMatchObject({
+ codex/continue-implementing-the-dashboard
       settings: expect.objectContaining({ logoText: "Qassem Studio" }),
       hero: expect.objectContaining({
         primaryButton: expect.objectContaining({ href: "#platform" }),
       }),
+
+      settings: expect.objectContaining({ logoText: "Qassem OS" }),
+      hero: expect.objectContaining({ primaryButton: expect.objectContaining({ href: "#platform" }) }),
+ main
     })
   })
 
   it("protects website content publishing with admin auth", async () => {
+ codex/continue-implementing-the-dashboard
     const response = await siteContentPost(
       request("/api/site/content", {
         method: "POST",
@@ -113,10 +138,14 @@ describe("ABOS API routes", () => {
         headers: { "content-type": "application/json" },
       }),
     )
+
+    const response = await siteContentPost(request("/api/site/content", { method: "POST", body: "{}", headers: { "content-type": "application/json" } }))
+ main
     const body = await json(response)
 
     expect(response.status).toBe(503)
     expectApiProtectionHeaders(response)
+ codex/continue-implementing-the-dashboard
     expect(body).toMatchObject({
       ok: false,
       error: "ABOS_ADMIN_TOKEN is missing. Refusing unsafe write operation.",
@@ -194,6 +223,9 @@ describe("ABOS API routes", () => {
     expect(response.status).toBe(400)
     expectApiProtectionHeaders(response)
     expect(body).toMatchObject({ ok: false, error: "Invalid request payload" })
+
+    expect(body).toMatchObject({ ok: false, error: "ABOS_ADMIN_TOKEN is missing. Refusing unsafe write operation." })
+ main
   })
 
   it("returns health data", async () => {
@@ -461,6 +493,73 @@ describe("ABOS API routes", () => {
         body: JSON.stringify({ token: "wrong-token" }),
         headers: { "content-type": "application/json" },
       }),
+    )
+    const body = await json(response)
+
+    expect(response.status).toBe(401)
+    expect(body).toMatchObject({ ok: false, error: "Unauthorized" })
+  })
+
+  it("creates, reads, and clears signed auth sessions", async () => {
+    process.env.ABOS_ADMIN_TOKEN = "test-token"
+
+    const loginResponse = await loginPost(
+      request("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ token: "test-token", role: "operator" }),
+        headers: { "content-type": "application/json" },
+      })
+    )
+    const cookie = loginResponse.headers.get("set-cookie")
+
+    expect(loginResponse.status).toBe(200)
+    expectApiProtectionHeaders(loginResponse)
+    expect(cookie).toContain("abos_session=")
+    expect(cookie).toContain("HttpOnly")
+
+    const sessionResponse = await sessionGet(request("/api/auth/session", { headers: { cookie: cookie ?? "" } }))
+    const sessionBody = await json(sessionResponse)
+
+    expect(sessionResponse.status).toBe(200)
+    expect(sessionBody).toMatchObject({ ok: true, principal: { role: "operator", source: "session" } })
+
+    const logoutResponse = await logoutPost(
+      request("/api/auth/logout", { method: "POST", body: "{}", headers: { "content-type": "application/json", cookie: cookie ?? "" } })
+    )
+
+    expect(logoutResponse.status).toBe(200)
+    expect(logoutResponse.headers.get("set-cookie")).toContain("Max-Age=0")
+  })
+
+  it("accepts bearer tokens for auth session checks", async () => {
+    process.env.ABOS_ADMIN_TOKEN = "test-token"
+
+    const response = await sessionGet(request("/api/auth/session", { headers: { authorization: "Bearer test-token" } }))
+    const body = await json(response)
+
+    expect(response.status).toBe(200)
+    expect(body).toMatchObject({ ok: true, principal: { role: "admin", source: "bearer" } })
+  })
+
+  it("rejects tampered auth session cookies", async () => {
+    process.env.ABOS_ADMIN_TOKEN = "test-token"
+
+    const response = await sessionGet(request("/api/auth/session", { headers: { cookie: "abos_session=tampered.signature" } }))
+    const body = await json(response)
+
+    expect(response.status).toBe(401)
+    expect(body).toMatchObject({ ok: false, error: "Unauthorized" })
+  })
+
+  it("rejects auth sessions with invalid tokens", async () => {
+    process.env.ABOS_ADMIN_TOKEN = "test-token"
+
+    const response = await loginPost(
+      request("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ token: "wrong-token" }),
+        headers: { "content-type": "application/json" },
+      })
     )
     const body = await json(response)
 

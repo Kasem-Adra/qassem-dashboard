@@ -57,6 +57,7 @@ export const authLoginSchema = z.object({
 
 export type AuthLoginInput = z.infer<typeof authLoginSchema>
 
+ codex/continue-implementing-the-dashboard
 const safeWebsiteHrefSchema = z.coerce
   .string()
   .min(1)
@@ -74,6 +75,11 @@ const safeWebsiteHrefSchema = z.coerce
 const websiteLinkSchema = z.object({
   label: z.coerce.string().min(1).max(80),
   href: safeWebsiteHrefSchema,
+
+const websiteLinkSchema = z.object({
+  label: z.coerce.string().min(1).max(80),
+  href: z.coerce.string().min(1).max(300),
+ main
 })
 
 export const websiteContentSchema = z.object({
@@ -90,6 +96,7 @@ export const websiteContentSchema = z.object({
     primaryButton: websiteLinkSchema,
     secondaryButton: websiteLinkSchema,
   }),
+ codex/continue-implementing-the-dashboard
   stats: z
     .array(
       z.object({
@@ -118,6 +125,21 @@ export const websiteContentSchema = z.object({
     )
     .min(1)
     .max(6),
+
+  stats: z.array(z.object({
+    value: z.coerce.string().min(1).max(40),
+    label: z.coerce.string().min(1).max(80),
+  })).min(1).max(6),
+  features: z.array(z.object({
+    title: z.coerce.string().min(1).max(120),
+    description: z.coerce.string().min(1).max(500),
+  })).min(1).max(8),
+  caseStudies: z.array(z.object({
+    title: z.coerce.string().min(1).max(120),
+    description: z.coerce.string().min(1).max(500),
+    metric: z.coerce.string().min(1).max(80),
+  })).min(1).max(6),
+ main
   cta: z.object({
     title: z.coerce.string().min(1).max(160),
     description: z.coerce.string().min(1).max(500),
