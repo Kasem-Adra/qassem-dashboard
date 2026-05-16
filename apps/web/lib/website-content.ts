@@ -1,46 +1,46 @@
 export interface WebsiteLink {
-  label: string;
-  href: string;
+  label: string
+  href: string
 }
 
 export interface WebsiteFeature {
-  title: string;
-  description: string;
+  title: string
+  description: string
 }
 
 export interface WebsiteStat {
-  label: string;
-  value: string;
+  label: string
+  value: string
 }
 
 export interface WebsiteCaseStudy {
-  title: string;
-  description: string;
-  metric: string;
+  title: string
+  description: string
+  metric: string
 }
 
 export interface WebsiteContent {
   settings: {
-    accent: string;
-    announcement: string;
-    logoText: string;
-  };
-  nav: WebsiteLink[];
+    accent: string
+    announcement: string
+    logoText: string
+  }
+  nav: WebsiteLink[]
   hero: {
-    eyebrow: string;
-    title: string;
-    subtitle: string;
-    primaryButton: WebsiteLink;
-    secondaryButton: WebsiteLink;
-  };
-  stats: WebsiteStat[];
-  features: WebsiteFeature[];
-  caseStudies: WebsiteCaseStudy[];
+    eyebrow: string
+    title: string
+    subtitle: string
+    primaryButton: WebsiteLink
+    secondaryButton: WebsiteLink
+  }
+  stats: WebsiteStat[]
+  features: WebsiteFeature[]
+  caseStudies: WebsiteCaseStudy[]
   cta: {
-    title: string;
-    description: string;
-    primaryButton: WebsiteLink;
-  };
+    title: string
+    description: string
+    primaryButton: WebsiteLink
+  }
 }
 
 export const defaultWebsiteContent: WebsiteContent = {
@@ -103,24 +103,24 @@ export const defaultWebsiteContent: WebsiteContent = {
       "Edit the site, review operations, and publish updates from one focused workspace.",
     primaryButton: { label: "Manage site", href: "/dashboard" },
   },
-};
-
-function cloneWebsiteContent(content: WebsiteContent): WebsiteContent {
-  return structuredClone(content);
 }
 
-let websiteContent: WebsiteContent = cloneWebsiteContent(defaultWebsiteContent);
+function cloneWebsiteContent(content: WebsiteContent): WebsiteContent {
+  return structuredClone(content)
+}
+
+let websiteContent: WebsiteContent = cloneWebsiteContent(defaultWebsiteContent)
 
 export function getWebsiteContent() {
-  return cloneWebsiteContent(websiteContent);
+  return cloneWebsiteContent(websiteContent)
 }
 
 export function updateWebsiteContent(content: WebsiteContent) {
-  websiteContent = cloneWebsiteContent(content);
-  return getWebsiteContent();
+  websiteContent = cloneWebsiteContent(content)
+  return getWebsiteContent()
 }
 
 export function resetWebsiteContent() {
-  websiteContent = cloneWebsiteContent(defaultWebsiteContent);
-  return getWebsiteContent();
+  websiteContent = cloneWebsiteContent(defaultWebsiteContent)
+  return getWebsiteContent()
 }

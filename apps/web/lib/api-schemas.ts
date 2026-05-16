@@ -1,6 +1,6 @@
-import { z } from "zod";
+import { z } from "zod"
 
-export const emptyQuerySchema = z.object({}).strict();
+export const emptyQuerySchema = z.object({}).strict()
 
 export const addMemorySchema = z.object({
   type: z.enum(["incident", "recovery", "note", "decision"]).default("note"),
@@ -14,7 +14,7 @@ export const addMemorySchema = z.object({
     .trim()
     .min(1, "title and description are required")
     .max(2000),
-});
+})
 
 export const aiStreamSchema = z.object({
   prompt: z.coerce.string().default(""),
@@ -45,17 +45,17 @@ export const aiStreamSchema = z.object({
     )
     .max(16)
     .optional(),
-});
+})
 
-export type AddMemoryInput = z.infer<typeof addMemorySchema>;
-export type AIStreamInput = z.infer<typeof aiStreamSchema>;
+export type AddMemoryInput = z.infer<typeof addMemorySchema>
+export type AIStreamInput = z.infer<typeof aiStreamSchema>
 
 export const authLoginSchema = z.object({
   token: z.coerce.string().min(1),
   role: z.enum(["admin", "operator"]).default("admin"),
-});
+})
 
-export type AuthLoginInput = z.infer<typeof authLoginSchema>;
+export type AuthLoginInput = z.infer<typeof authLoginSchema>
 
 const safeWebsiteHrefSchema = z.coerce
   .string()
@@ -69,12 +69,12 @@ const safeWebsiteHrefSchema = z.coerce
       href.startsWith("tel:") ||
       /^https?:\/\//i.test(href),
     "Use a relative, anchor, mail, phone, http, or https link",
-  );
+  )
 
 const websiteLinkSchema = z.object({
   label: z.coerce.string().min(1).max(80),
   href: safeWebsiteHrefSchema,
-});
+})
 
 export const websiteContentSchema = z.object({
   settings: z.object({
@@ -123,9 +123,9 @@ export const websiteContentSchema = z.object({
     description: z.coerce.string().min(1).max(500),
     primaryButton: websiteLinkSchema,
   }),
-});
+})
 
-export type WebsiteContentInput = z.infer<typeof websiteContentSchema>;
+export type WebsiteContentInput = z.infer<typeof websiteContentSchema>
 
 export const runtimeCreateTaskSchema = z.object({
   workspaceId: z.coerce.string().min(1).default("default"),
@@ -138,13 +138,13 @@ export const runtimeCreateTaskSchema = z.object({
   scheduledAt: z.string().datetime().optional(),
   maxAttempts: z.coerce.number().int().min(1).max(10).default(3),
   metadata: z.record(z.string(), z.unknown()).optional(),
-});
+})
 
 export const runtimeTaskIdQuerySchema = z
   .object({
     taskId: z.coerce.string().min(1),
   })
-  .strict();
+  .strict()
 
 export const runtimeMemoryQuerySchema = z
   .object({
@@ -152,32 +152,32 @@ export const runtimeMemoryQuerySchema = z
     query: z.coerce.string().default(""),
     limit: z.coerce.number().int().min(1).max(50).default(10),
   })
-  .strict();
+  .strict()
 
-export type RuntimeCreateTaskInput = z.infer<typeof runtimeCreateTaskSchema>;
+export type RuntimeCreateTaskInput = z.infer<typeof runtimeCreateTaskSchema>
 
 export const runtimeWorkspaceQuerySchema = z
   .object({
     workspaceId: z.coerce.string().min(1).default("default"),
   })
-  .strict();
+  .strict()
 
 export const runtimeControlSchema = z.object({
   taskId: z.coerce.string().min(1),
   action: z.enum(["pause", "resume", "retry", "cancel", "replay"]),
-});
+})
 
 export const runtimeRunSchema = z.object({
   taskId: z.coerce.string().min(1).optional(),
   now: z.string().datetime().optional(),
-});
+})
 
 export const runtimeWorkflowSchema = z.object({
   workspaceId: z.coerce.string().min(1).default("default"),
   name: z.coerce.string().min(1).max(120),
   description: z.coerce.string().max(500).optional(),
   definition: z.record(z.string(), z.unknown()),
-});
+})
 
 export const runtimeToolSchema = z.object({
   workspaceId: z.coerce.string().min(1).default("default"),
@@ -185,7 +185,7 @@ export const runtimeToolSchema = z.object({
   description: z.coerce.string().min(1).max(500),
   inputSchema: z.record(z.string(), z.unknown()),
   handlerRef: z.coerce.string().max(300).optional(),
-});
+})
 
 export const runtimeAgentDefinitionSchema = z.object({
   workspaceId: z.coerce.string().min(1).default("default"),
@@ -193,17 +193,17 @@ export const runtimeAgentDefinitionSchema = z.object({
   description: z.coerce.string().min(1).max(500),
   systemPrompt: z.coerce.string().min(1).max(4000),
   tools: z.array(z.coerce.string()).max(32).default([]),
-});
+})
 
 export const runtimeHookSchema = z.object({
   workspaceId: z.coerce.string().min(1).default("default"),
   eventType: z.coerce.string().min(1).max(120),
   targetUrl: z.string().url().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
-});
+})
 
 export const runtimeRoleSchema = z.object({
   workspaceId: z.coerce.string().min(1).default("default"),
   name: z.enum(["admin", "operator"]),
   scopes: z.array(z.coerce.string().min(1).max(80)).min(1).max(32),
-});
+})

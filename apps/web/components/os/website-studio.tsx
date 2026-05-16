@@ -1,75 +1,75 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { apiJson } from "../../lib/api-client";
+import { useEffect, useState } from "react"
+import { apiJson } from "../../lib/api-client"
 import {
   defaultWebsiteContent,
   type WebsiteContent,
-} from "../../lib/website-content";
+} from "../../lib/website-content"
 
 type AuthState =
   | { status: "checking" }
   | { status: "authenticated"; role: "admin" | "operator"; source: string }
-  | { status: "anonymous" };
+  | { status: "anonymous" }
 
-const authFallback = { ok: false as const };
+const authFallback = { ok: false as const }
 
 export function WebsiteStudio() {
-  const [content, setContent] = useState<WebsiteContent>(defaultWebsiteContent);
-  const [adminToken, setAdminToken] = useState("");
-  const [authState, setAuthState] = useState<AuthState>({ status: "checking" });
-  const [status, setStatus] = useState("Draft saved locally");
+  const [content, setContent] = useState<WebsiteContent>(defaultWebsiteContent)
+  const [adminToken, setAdminToken] = useState("")
+  const [authState, setAuthState] = useState<AuthState>({ status: "checking" })
+  const [status, setStatus] = useState("Draft saved locally")
 
   useEffect(() => {
     apiJson<{ content: WebsiteContent }>("/api/site/content", {
       fallback: { content: defaultWebsiteContent },
-    }).then((data) => setContent(data.content));
-    refreshSession();
-  }, []);
+    }).then((data) => setContent(data.content))
+    refreshSession()
+  }, [])
 
   async function refreshSession() {
     const session = await apiJson<
       | { ok: true; principal: { role: "admin" | "operator"; source: string } }
       | typeof authFallback
-    >("/api/auth/session", { fallback: authFallback });
+    >("/api/auth/session", { fallback: authFallback })
 
     if (session.ok) {
       setAuthState({
         status: "authenticated",
         role: session.principal.role,
         source: session.principal.source,
-      });
-      return true;
+      })
+      return true
     }
 
-    setAuthState({ status: "anonymous" });
-    return false;
+    setAuthState({ status: "anonymous" })
+    return false
   }
 
   async function login() {
     if (!adminToken.trim()) {
-      setStatus("Enter the admin token before starting an editor session.");
-      return false;
+      setStatus("Enter the admin token before starting an editor session.")
+      return false
     }
 
-    setStatus("Starting secure editor session…");
+    setStatus("Starting secure editor session…")
     const response = await fetch("/api/auth/login", {
       method: "POST",
       credentials: "same-origin",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ token: adminToken.trim(), role: "admin" }),
-    });
+    })
 
     if (!response.ok) {
-      setAuthState({ status: "anonymous" });
-      setStatus("Login failed. Check the admin token.");
-      return false;
+      setAuthState({ status: "anonymous" })
+      setStatus("Login failed. Check the admin token.")
+      return false
     }
 
-    setAdminToken("");
-    await refreshSession();
-    setStatus("Secure editor session is active.");
-    return true;
+    setAdminToken("")
+    await refreshSession()
+    setStatus("Secure editor session is active.")
+    return true
   }
 
   async function logout() {
@@ -78,44 +78,44 @@ export function WebsiteStudio() {
       credentials: "same-origin",
       headers: { "content-type": "application/json" },
       body: "{}",
-    });
-    setAuthState({ status: "anonymous" });
-    setStatus("Editor session ended.");
+    })
+    setAuthState({ status: "anonymous" })
+    setStatus("Editor session ended.")
   }
 
   async function publish() {
-    let hasSession = authState.status === "authenticated";
-    if (!hasSession && adminToken.trim()) hasSession = await login();
+    let hasSession = authState.status === "authenticated"
+    if (!hasSession && adminToken.trim()) hasSession = await login()
 
     if (!hasSession) {
-      setStatus("Start an editor session before publishing changes.");
-      return;
+      setStatus("Start an editor session before publishing changes.")
+      return
     }
 
-    setStatus("Publishing changes…");
+    setStatus("Publishing changes…")
     const response = await fetch("/api/site/content", {
       method: "POST",
       credentials: "same-origin",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(content),
-    });
+    })
 
     if (response.ok) {
-      setStatus("Site content published.");
-      return;
+      setStatus("Site content published.")
+      return
     }
 
-    if (response.status === 401) setAuthState({ status: "anonymous" });
+    if (response.status === 401) setAuthState({ status: "anonymous" })
     setStatus(
       "Publish failed. Refresh the editor session and check the content fields.",
-    );
+    )
   }
 
   function updateHero(field: keyof WebsiteContent["hero"], value: string) {
     setContent((current) => ({
       ...current,
       hero: { ...current.hero, [field]: value },
-    }));
+    }))
   }
 
   function updateSetting(
@@ -125,7 +125,7 @@ export function WebsiteStudio() {
     setContent((current) => ({
       ...current,
       settings: { ...current.settings, [field]: value },
-    }));
+    }))
   }
 
   function updateFeature(
@@ -138,7 +138,7 @@ export function WebsiteStudio() {
       features: current.features.map((feature, featureIndex) =>
         featureIndex === index ? { ...feature, [field]: value } : feature,
       ),
-    }));
+    }))
   }
 
   function updateCaseStudy(
@@ -151,14 +151,14 @@ export function WebsiteStudio() {
       caseStudies: current.caseStudies.map((item, itemIndex) =>
         itemIndex === index ? { ...item, [field]: value } : item,
       ),
-    }));
+    }))
   }
 
   function updateCta(field: keyof WebsiteContent["cta"], value: string) {
     setContent((current) => ({
       ...current,
       cta: { ...current.cta, [field]: value },
-    }));
+    }))
   }
 
   return (
@@ -382,22 +382,22 @@ export function WebsiteStudio() {
         </EditorCard>
       </div>
     </section>
-  );
+  )
 }
 
 function EditorCard({
   children,
   title,
 }: {
-  children: React.ReactNode;
-  title: string;
+  children: React.ReactNode
+  title: string
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
       <h3 className="text-sm font-semibold text-slate-950">{title}</h3>
       <div className="mt-4 space-y-3">{children}</div>
     </div>
-  );
+  )
 }
 
 function Field({
@@ -406,13 +406,13 @@ function Field({
   textarea,
   value,
 }: {
-  label: string;
-  onChange: (value: string) => void;
-  textarea?: boolean;
-  value: string;
+  label: string
+  onChange: (value: string) => void
+  textarea?: boolean
+  value: string
 }) {
   const className =
-    "mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100";
+    "mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
   return (
     <label className="block text-xs font-medium uppercase tracking-[.14em] text-slate-500">
       {label}
@@ -430,5 +430,5 @@ function Field({
         />
       )}
     </label>
-  );
+  )
 }
