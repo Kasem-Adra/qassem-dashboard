@@ -29,7 +29,24 @@ export class ApiError extends Error {
   }
 }
 
+export type AuthenticatedRole = "admin" | "operator"
+
+export interface AuthenticatedPrincipal {
+  role: AuthenticatedRole
+  source: "bearer" | "header" | "session"
+  subject: string
+}
+
+interface SessionPayload {
+  exp: number
+  iat: number
+  role: AuthenticatedRole
+  sub: string
+}
+
 const defaultBodyLimitBytes = 32 * 1024
+const sessionCookieName = "abos_session"
+const sessionTtlSeconds = 8 * 60 * 60
 
 function createRequestId() {
   return crypto.randomUUID()
@@ -72,26 +89,135 @@ function secureCompare(a: string, b: string) {
   return diff === 0
 }
 
-export function requireAdmin(request: Request) {
+function base64UrlEncode(value: string) {
+  return btoa(value).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "")
+}
+
+function base64UrlEncodeBytes(value: Uint8Array) {
+  let binary = ""
+  for (const byte of value) binary += String.fromCharCode(byte)
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "")
+}
+
+function base64UrlDecode(value: string) {
+  const padded = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=")
+  return atob(padded)
+}
+
+async function signSessionPayload(payload: string, secret: string) {
+  const encoder = new TextEncoder()
+  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(payload))
+  return base64UrlEncodeBytes(new Uint8Array(signature))
+}
+
+function getCookie(request: Request, name: string) {
+  const header = request.headers.get("cookie")
+  if (!header) return null
+
+  for (const segment of header.split(";")) {
+    const [rawName, ...rawValue] = segment.trim().split("=")
+    if (rawName === name) return rawValue.join("=") || null
+  }
+
+  return null
+}
+
+async function readSession(request: Request, expected: string): Promise<AuthenticatedPrincipal | null> {
+  const cookie = getCookie(request, sessionCookieName)
+  if (!cookie) return null
+
+  const [encodedPayload, signature] = cookie.split(".")
+  if (!encodedPayload || !signature) return null
+
+  const expectedSignature = await signSessionPayload(encodedPayload, expected)
+  if (!secureCompare(signature, expectedSignature)) return null
+
+  let payload: SessionPayload
+  try {
+    payload = JSON.parse(base64UrlDecode(encodedPayload)) as SessionPayload
+  } catch {
+    return null
+  }
+
+  if (!payload.sub || !payload.exp || !["admin", "operator"].includes(payload.role)) return null
+  if (payload.exp <= Math.floor(Date.now() / 1000)) return null
+
+  return { role: payload.role, source: "session", subject: payload.sub }
+}
+
+function readTokenPrincipal(request: Request, expected: string): AuthenticatedPrincipal | null {
+  const auth = request.headers.get("authorization") || ""
+  const bearer = auth.startsWith("Bearer ") ? auth.slice(7).trim() : null
+  const headerToken = request.headers.get("x-abos-admin-token")
+  const token = bearer || headerToken
+
+  if (!token || !secureCompare(token, expected)) return null
+
+  return {
+    role: request.headers.get("x-abos-role") === "operator" ? "operator" : "admin",
+    source: bearer ? "bearer" : "header",
+    subject: "admin-token",
+  }
+}
+
+export async function createAdminSessionCookie(role: AuthenticatedRole = "admin") {
+  const expected = process.env.ABOS_ADMIN_TOKEN
+  if (!expected) {
+    throw new ApiError("ABOS_ADMIN_TOKEN is missing. Refusing unsafe write operation.", 503)
+  }
+
+  const now = Math.floor(Date.now() / 1000)
+  const payload = base64UrlEncode(JSON.stringify({ exp: now + sessionTtlSeconds, iat: now, role, sub: "abos-admin" } satisfies SessionPayload))
+  const signature = await signSessionPayload(payload, expected)
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : ""
+
+  return `${sessionCookieName}=${payload}.${signature}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${sessionTtlSeconds}${secure}`
+}
+
+export function clearAdminSessionCookie() {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : ""
+  return `${sessionCookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`
+}
+
+export async function authenticateRequest(request: Request): Promise<AuthenticatedPrincipal | Response> {
   const expected = process.env.ABOS_ADMIN_TOKEN
 
   if (!expected) {
     return jsonError("ABOS_ADMIN_TOKEN is missing. Refusing unsafe write operation.", 503)
   }
 
-  const auth = request.headers.get("authorization") || ""
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : request.headers.get("x-abos-admin-token")
+  const tokenPrincipal = readTokenPrincipal(request, expected)
+  if (tokenPrincipal) return tokenPrincipal
 
-  if (!token || !secureCompare(token, expected)) {
+  const sessionPrincipal = await readSession(request, expected)
+  if (!sessionPrincipal) return jsonError("Unauthorized", 401)
+
+  return sessionPrincipal
+}
+
+export function verifyAdminToken(token: string) {
+  const expected = process.env.ABOS_ADMIN_TOKEN
+
+  if (!expected) {
+    return jsonError("ABOS_ADMIN_TOKEN is missing. Refusing unsafe write operation.", 503)
+  }
+
+  if (!secureCompare(token, expected)) {
     return jsonError("Unauthorized", 401)
   }
 
   return null
 }
 
+export async function requireAdmin(request: Request) {
+  const result = await authenticateRequest(request)
+  return result instanceof Response ? result : null
+}
+
 export function withAdmin(handler: ApiHandler): ApiHandler {
-  return (request) => {
-    const unauthorized = requireAdmin(request)
+  return async (request) => {
+    const unauthorized = await requireAdmin(request)
     if (unauthorized) return unauthorized
     return handler(request)
   }
@@ -210,8 +336,8 @@ export function withApiRoute(name: string, handler: ApiHandler, options: ApiRout
     let rateLimit: RateLimitMetadata | undefined
 
     try {
-      assertAllowedMethod(request, options.allowedMethods)
       rateLimit = enforceRateLimit(request, name, options.rateLimit ?? publicRateLimit)
+      assertAllowedMethod(request, options.allowedMethods)
 
       const response = await handler(request)
       status = response.status
