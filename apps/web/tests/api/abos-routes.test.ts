@@ -1,235 +1,365 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { POST as addMemoryPost } from "../../app/api/abos/add-memory/route"
-import { GET as agentsGet } from "../../app/api/abos/agents/route"
-import { GET as databaseGet } from "../../app/api/abos/database/route"
-import { GET as decisionsGet } from "../../app/api/abos/decisions/route"
-import { GET as healthGet } from "../../app/api/abos/health/route"
-import { GET as liveScoreGet } from "../../app/api/abos/live-score/route"
-import { GET as memoryGet } from "../../app/api/abos/memory/route"
-import { GET as recommendationsGet } from "../../app/api/abos/recommendations/route"
-import { GET as risksGet } from "../../app/api/abos/risks/route"
-import { POST as seedPost } from "../../app/api/abos/seed/route"
-import { POST as setupPost } from "../../app/api/abos/setup/route"
-import { GET as streamGet } from "../../app/api/abos/stream/route"
-import { GET as siteContentGet, POST as siteContentPost } from "../../app/api/site/content/route"
-import { POST as loginPost } from "../../app/api/auth/login/route"
-import { POST as logoutPost } from "../../app/api/auth/logout/route"
-import { GET as sessionGet } from "../../app/api/auth/session/route"
+import { POST as addMemoryPost } from "../../app/api/abos/add-memory/route";
+import { GET as agentsGet } from "../../app/api/abos/agents/route";
+import { GET as databaseGet } from "../../app/api/abos/database/route";
+import { GET as decisionsGet } from "../../app/api/abos/decisions/route";
+import { GET as healthGet } from "../../app/api/abos/health/route";
+import { GET as liveScoreGet } from "../../app/api/abos/live-score/route";
+import { GET as memoryGet } from "../../app/api/abos/memory/route";
+import { GET as recommendationsGet } from "../../app/api/abos/recommendations/route";
+import { GET as risksGet } from "../../app/api/abos/risks/route";
+import { POST as seedPost } from "../../app/api/abos/seed/route";
+import { POST as setupPost } from "../../app/api/abos/setup/route";
+import { GET as streamGet } from "../../app/api/abos/stream/route";
+import {
+  GET as siteContentGet,
+  POST as siteContentPost,
+} from "../../app/api/site/content/route";
+import { POST as loginPost } from "../../app/api/auth/login/route";
+import { POST as logoutPost } from "../../app/api/auth/logout/route";
+import { GET as sessionGet } from "../../app/api/auth/session/route";
+import { resetWebsiteContent } from "../../lib/website-content";
 
-const baseUrl = "http://localhost:3000"
+const baseUrl = "http://localhost:3000";
 
 function request(path: string, init?: RequestInit) {
-  return new Request(`${baseUrl}${path}`, init)
+  return new Request(`${baseUrl}${path}`, init);
 }
 
 async function json(response: Response) {
-  return response.json() as Promise<Record<string, unknown>>
+  return response.json() as Promise<Record<string, unknown>>;
 }
 
 function expectApiProtectionHeaders(response: Response) {
-  expect(response.headers.get("x-request-id")).toBeTruthy()
-  expect(response.headers.get("x-content-type-options")).toBe("nosniff")
-  expect(response.headers.get("x-frame-options")).toBe("DENY")
-  expect(response.headers.get("x-ratelimit-limit")).toBeTruthy()
+  expect(response.headers.get("x-request-id")).toBeTruthy();
+  expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+  expect(response.headers.get("x-frame-options")).toBe("DENY");
+  expect(response.headers.get("x-ratelimit-limit")).toBeTruthy();
 }
 
 describe("ABOS API routes", () => {
-  const originalDatabaseUrl = process.env.DATABASE_URL
-  const originalAdminToken = process.env.ABOS_ADMIN_TOKEN
+  const originalDatabaseUrl = process.env.DATABASE_URL;
+  const originalAdminToken = process.env.ABOS_ADMIN_TOKEN;
 
   beforeEach(() => {
-    delete process.env.DATABASE_URL
-    delete process.env.ABOS_ADMIN_TOKEN
-  })
+    delete process.env.DATABASE_URL;
+    delete process.env.ABOS_ADMIN_TOKEN;
+  });
 
   afterEach(() => {
+    resetWebsiteContent();
+
     if (originalDatabaseUrl === undefined) {
-      delete process.env.DATABASE_URL
+      delete process.env.DATABASE_URL;
     } else {
-      process.env.DATABASE_URL = originalDatabaseUrl
+      process.env.DATABASE_URL = originalDatabaseUrl;
     }
 
     if (originalAdminToken === undefined) {
-      delete process.env.ABOS_ADMIN_TOKEN
+      delete process.env.ABOS_ADMIN_TOKEN;
     } else {
-      process.env.ABOS_ADMIN_TOKEN = originalAdminToken
+      process.env.ABOS_ADMIN_TOKEN = originalAdminToken;
     }
-  })
+  });
 
   it("reports method errors through the API envelope", async () => {
-    const response = await healthGet(request("/api/abos/health", { method: "POST" }))
-    const body = await json(response)
+    const response = await healthGet(
+      request("/api/abos/health", { method: "POST" }),
+    );
+    const body = await json(response);
 
-    expect(response.status).toBe(405)
-    expectApiProtectionHeaders(response)
-    expect(body).toMatchObject({ ok: false, error: "Method not allowed" })
-  })
+    expect(response.status).toBe(405);
+    expectApiProtectionHeaders(response);
+    expect(body).toMatchObject({ ok: false, error: "Method not allowed" });
+  });
 
   it("reports invalid JSON bodies through the API envelope", async () => {
-    process.env.ABOS_ADMIN_TOKEN = "test-token"
+    process.env.ABOS_ADMIN_TOKEN = "test-token";
 
     const response = await loginPost(
       request("/api/auth/login", {
         method: "POST",
         body: "{not-json",
         headers: { "content-type": "application/json" },
-      })
-    )
-    const body = await json(response)
+      }),
+    );
+    const body = await json(response);
 
-    expect(response.status).toBe(400)
-    expectApiProtectionHeaders(response)
-    expect(body).toMatchObject({ ok: false, error: "Invalid JSON body" })
-  })
-
+    expect(response.status).toBe(400);
+    expectApiProtectionHeaders(response);
+    expect(body).toMatchObject({ ok: false, error: "Invalid JSON body" });
+  });
 
   it("serves website content for the public website", async () => {
-    const response = await siteContentGet(request("/api/site/content"))
-    const body = await json(response)
+    const response = await siteContentGet(request("/api/site/content"));
+    const body = await json(response);
 
-    expect(response.status).toBe(200)
-    expectApiProtectionHeaders(response)
+    expect(response.status).toBe(200);
+    expectApiProtectionHeaders(response);
     expect(body.content).toMatchObject({
       settings: expect.objectContaining({ logoText: "Qassem Studio" }),
-      hero: expect.objectContaining({ primaryButton: expect.objectContaining({ href: "#platform" }) }),
-    })
-  })
+      hero: expect.objectContaining({
+        primaryButton: expect.objectContaining({ href: "#platform" }),
+      }),
+    });
+  });
 
   it("protects website content publishing with admin auth", async () => {
-    const response = await siteContentPost(request("/api/site/content", { method: "POST", body: "{}", headers: { "content-type": "application/json" } }))
-    const body = await json(response)
+    const response = await siteContentPost(
+      request("/api/site/content", {
+        method: "POST",
+        body: "{}",
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const body = await json(response);
 
-    expect(response.status).toBe(503)
-    expectApiProtectionHeaders(response)
-    expect(body).toMatchObject({ ok: false, error: "ABOS_ADMIN_TOKEN is missing. Refusing unsafe write operation." })
-  })
+    expect(response.status).toBe(503);
+    expectApiProtectionHeaders(response);
+    expect(body).toMatchObject({
+      ok: false,
+      error: "ABOS_ADMIN_TOKEN is missing. Refusing unsafe write operation.",
+    });
+  });
+
+  it("publishes website content with a signed admin session", async () => {
+    process.env.ABOS_ADMIN_TOKEN = "test-token";
+
+    const loginResponse = await loginPost(
+      request("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ token: "test-token" }),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const cookie = loginResponse.headers.get("set-cookie") ?? "";
+
+    const contentResponse = await siteContentGet(request("/api/site/content"));
+    const { content } = (await json(contentResponse)) as {
+      content: Record<string, unknown>;
+    };
+
+    const response = await siteContentPost(
+      request("/api/site/content", {
+        method: "POST",
+        body: JSON.stringify({
+          ...content,
+          settings: {
+            ...(content.settings as Record<string, unknown>),
+            announcement: "Published from a signed session",
+          },
+        }),
+        headers: { "content-type": "application/json", cookie },
+      }),
+    );
+    const body = await json(response);
+
+    expect(response.status).toBe(200);
+    expectApiProtectionHeaders(response);
+    expect(body).toMatchObject({
+      ok: true,
+      content: {
+        settings: { announcement: "Published from a signed session" },
+      },
+    });
+  });
+
+  it("rejects unsafe website links before publishing", async () => {
+    process.env.ABOS_ADMIN_TOKEN = "test-token";
+
+    const contentResponse = await siteContentGet(request("/api/site/content"));
+    const { content } = (await json(contentResponse)) as {
+      content: Record<string, unknown>;
+    };
+
+    const response = await siteContentPost(
+      request("/api/site/content", {
+        method: "POST",
+        body: JSON.stringify({
+          ...content,
+          hero: {
+            ...(content.hero as Record<string, unknown>),
+            primaryButton: { label: "Bad link", href: "javascript:alert(1)" },
+          },
+        }),
+        headers: {
+          authorization: "Bearer test-token",
+          "content-type": "application/json",
+        },
+      }),
+    );
+    const body = await json(response);
+
+    expect(response.status).toBe(400);
+    expectApiProtectionHeaders(response);
+    expect(body).toMatchObject({ ok: false, error: "Invalid request payload" });
+  });
 
   it("returns health data", async () => {
-    const response = await healthGet(request("/api/abos/health"))
-    const body = await json(response)
+    const response = await healthGet(request("/api/abos/health"));
+    const body = await json(response);
 
-    expect(response.status).toBe(200)
-    expectApiProtectionHeaders(response)
+    expect(response.status).toBe(200);
+    expectApiProtectionHeaders(response);
     expect(body).toMatchObject({
       operationalHealth: 87,
       criticalRisks: 3,
       status: "demo",
-    })
-  })
+    });
+  });
 
   it("returns live score fallback data", async () => {
-    const response = await liveScoreGet(request("/api/abos/live-score"))
-    const body = await json(response)
+    const response = await liveScoreGet(request("/api/abos/live-score"));
+    const body = await json(response);
 
-    expect(response.status).toBe(200)
-    expectApiProtectionHeaders(response)
-    expect(body).toMatchObject({ operationalScore: 87, riskScore: 32, mode: "demo" })
-  })
+    expect(response.status).toBe(200);
+    expectApiProtectionHeaders(response);
+    expect(body).toMatchObject({
+      operationalScore: 87,
+      riskScore: 32,
+      mode: "demo",
+    });
+  });
 
   it("returns risks fallback data", async () => {
-    const response = await risksGet(request("/api/abos/risks"))
-    const body = await json(response)
+    const response = await risksGet(request("/api/abos/risks"));
+    const body = await json(response);
 
-    expect(response.status).toBe(200)
-    expectApiProtectionHeaders(response)
-    expect(body.mode).toBe("demo")
-    expect(body.risks).toEqual(expect.arrayContaining([expect.objectContaining({ title: "Client onboarding" })]))
-  })
+    expect(response.status).toBe(200);
+    expectApiProtectionHeaders(response);
+    expect(body.mode).toBe("demo");
+    expect(body.risks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ title: "Client onboarding" }),
+      ]),
+    );
+  });
 
   it("returns recommendations fallback data", async () => {
-    const response = await recommendationsGet(request("/api/abos/recommendations"))
-    const body = await json(response)
+    const response = await recommendationsGet(
+      request("/api/abos/recommendations"),
+    );
+    const body = await json(response);
 
-    expect(response.status).toBe(200)
-    expectApiProtectionHeaders(response)
-    expect(body.mode).toBe("demo")
-    expect(body.recommendations).toEqual(expect.arrayContaining(["Assign one owner to client onboarding"]))
-  })
+    expect(response.status).toBe(200);
+    expectApiProtectionHeaders(response);
+    expect(body.mode).toBe("demo");
+    expect(body.recommendations).toEqual(
+      expect.arrayContaining(["Assign one owner to client onboarding"]),
+    );
+  });
 
   it("returns agents fallback data", async () => {
-    const response = await agentsGet(request("/api/abos/agents"))
-    const body = await json(response)
+    const response = await agentsGet(request("/api/abos/agents"));
+    const body = await json(response);
 
-    expect(response.status).toBe(200)
-    expectApiProtectionHeaders(response)
-    expect(body.mode).toBe("demo")
-    expect(body.agents).toEqual(expect.arrayContaining([expect.objectContaining({ name: "Risk Monitor" })]))
-  })
+    expect(response.status).toBe(200);
+    expectApiProtectionHeaders(response);
+    expect(body.mode).toBe("demo");
+    expect(body.agents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "Risk Monitor" }),
+      ]),
+    );
+  });
 
   it("returns memory fallback data", async () => {
-    const response = await memoryGet(request("/api/abos/memory"))
-    const body = await json(response)
+    const response = await memoryGet(request("/api/abos/memory"));
+    const body = await json(response);
 
-    expect(response.status).toBe(200)
-    expectApiProtectionHeaders(response)
-    expect(body.mode).toBe("demo")
-    expect(body.events).toEqual(expect.arrayContaining([expect.objectContaining({ title: "Client escalation logged" })]))
-  })
+    expect(response.status).toBe(200);
+    expectApiProtectionHeaders(response);
+    expect(body.mode).toBe("demo");
+    expect(body.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ title: "Client escalation logged" }),
+      ]),
+    );
+  });
 
   it("returns decisions data", async () => {
-    const response = await decisionsGet(request("/api/abos/decisions"))
-    const body = await json(response)
+    const response = await decisionsGet(request("/api/abos/decisions"));
+    const body = await json(response);
 
-    expect(response.status).toBe(200)
-    expectApiProtectionHeaders(response)
-    expect(body.decisions).toEqual(expect.arrayContaining([expect.objectContaining({ priority: "critical" })]))
-  })
+    expect(response.status).toBe(200);
+    expectApiProtectionHeaders(response);
+    expect(body.decisions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ priority: "critical" }),
+      ]),
+    );
+  });
 
   it("returns database health errors safely when DATABASE_URL is missing", async () => {
-    const response = await databaseGet(request("/api/abos/database"))
-    const body = await json(response)
+    const response = await databaseGet(request("/api/abos/database"));
+    const body = await json(response);
 
-    expect(response.status).toBe(503)
-    expectApiProtectionHeaders(response)
-    expect(body).toMatchObject({ ok: false })
-    expect(String(body.error)).toContain("DATABASE_URL is missing")
-  })
+    expect(response.status).toBe(503);
+    expectApiProtectionHeaders(response);
+    expect(body).toMatchObject({ ok: false });
+    expect(String(body.error)).toContain("DATABASE_URL is missing");
+  });
 
   it("streams ABOS SSE events safely", async () => {
-    const response = await streamGet(request("/api/abos/stream"))
-    const reader = response.body?.getReader()
+    const response = await streamGet(request("/api/abos/stream"));
+    const reader = response.body?.getReader();
 
-    expect(response.status).toBe(200)
-    expectApiProtectionHeaders(response)
-    expect(response.headers.get("content-type")).toBe("text/event-stream")
-    expect(reader).toBeTruthy()
+    expect(response.status).toBe(200);
+    expectApiProtectionHeaders(response);
+    expect(response.headers.get("content-type")).toBe("text/event-stream");
+    expect(reader).toBeTruthy();
 
-    const chunk = await reader!.read()
-    await reader!.cancel()
+    const chunk = await reader!.read();
+    await reader!.cancel();
 
-    expect(new TextDecoder().decode(chunk.value)).toContain("data:")
-  })
+    expect(new TextDecoder().decode(chunk.value)).toContain("data:");
+  });
 
   it("protects setup with ABOS_ADMIN_TOKEN", async () => {
-    const response = await setupPost(request("/api/abos/setup", { method: "POST" }))
-    const body = await json(response)
+    const response = await setupPost(
+      request("/api/abos/setup", { method: "POST" }),
+    );
+    const body = await json(response);
 
-    expect(response.status).toBe(503)
-    expectApiProtectionHeaders(response)
-    expect(body).toMatchObject({ ok: false, error: "ABOS_ADMIN_TOKEN is missing. Refusing unsafe write operation." })
-  })
+    expect(response.status).toBe(503);
+    expectApiProtectionHeaders(response);
+    expect(body).toMatchObject({
+      ok: false,
+      error: "ABOS_ADMIN_TOKEN is missing. Refusing unsafe write operation.",
+    });
+  });
 
   it("protects seed with ABOS_ADMIN_TOKEN", async () => {
-    const response = await seedPost(request("/api/abos/seed", { method: "POST" }))
-    const body = await json(response)
+    const response = await seedPost(
+      request("/api/abos/seed", { method: "POST" }),
+    );
+    const body = await json(response);
 
-    expect(response.status).toBe(503)
-    expectApiProtectionHeaders(response)
-    expect(body).toMatchObject({ ok: false, error: "ABOS_ADMIN_TOKEN is missing. Refusing unsafe write operation." })
-  })
+    expect(response.status).toBe(503);
+    expectApiProtectionHeaders(response);
+    expect(body).toMatchObject({
+      ok: false,
+      error: "ABOS_ADMIN_TOKEN is missing. Refusing unsafe write operation.",
+    });
+  });
 
   it("protects add-memory with ABOS_ADMIN_TOKEN", async () => {
-    const response = await addMemoryPost(request("/api/abos/add-memory", { method: "POST" }))
-    const body = await json(response)
+    const response = await addMemoryPost(
+      request("/api/abos/add-memory", { method: "POST" }),
+    );
+    const body = await json(response);
 
-    expect(response.status).toBe(503)
-    expectApiProtectionHeaders(response)
-    expect(body).toMatchObject({ ok: false, error: "ABOS_ADMIN_TOKEN is missing. Refusing unsafe write operation." })
-  })
+    expect(response.status).toBe(503);
+    expectApiProtectionHeaders(response);
+    expect(body).toMatchObject({
+      ok: false,
+      error: "ABOS_ADMIN_TOKEN is missing. Refusing unsafe write operation.",
+    });
+  });
 
   it("validates add-memory request bodies after admin auth", async () => {
-    process.env.ABOS_ADMIN_TOKEN = "test-token"
+    process.env.ABOS_ADMIN_TOKEN = "test-token";
 
     const response = await addMemoryPost(
       request("/api/abos/add-memory", {
@@ -239,87 +369,112 @@ describe("ABOS API routes", () => {
           authorization: "Bearer test-token",
           "content-type": "application/json",
         },
-      })
-    )
-    const body = await json(response)
+      }),
+    );
+    const body = await json(response);
 
-    expect(response.status).toBe(400)
-    expectApiProtectionHeaders(response)
-    expect(body).toMatchObject({ ok: false, error: "title and description are required" })
-  })
+    expect(response.status).toBe(400);
+    expectApiProtectionHeaders(response);
+    expect(body).toMatchObject({
+      ok: false,
+      error: "title and description are required",
+    });
+  });
 
   it("creates, reads, and clears signed auth sessions", async () => {
-    process.env.ABOS_ADMIN_TOKEN = "test-token"
+    process.env.ABOS_ADMIN_TOKEN = "test-token";
 
     const loginResponse = await loginPost(
       request("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ token: "test-token", role: "operator" }),
         headers: { "content-type": "application/json" },
-      })
-    )
-    const cookie = loginResponse.headers.get("set-cookie")
+      }),
+    );
+    const cookie = loginResponse.headers.get("set-cookie");
 
-    expect(loginResponse.status).toBe(200)
-    expectApiProtectionHeaders(loginResponse)
-    expect(cookie).toContain("abos_session=")
-    expect(cookie).toContain("HttpOnly")
+    expect(loginResponse.status).toBe(200);
+    expectApiProtectionHeaders(loginResponse);
+    expect(cookie).toContain("abos_session=");
+    expect(cookie).toContain("HttpOnly");
 
-    const sessionResponse = await sessionGet(request("/api/auth/session", { headers: { cookie: cookie ?? "" } }))
-    const sessionBody = await json(sessionResponse)
+    const sessionResponse = await sessionGet(
+      request("/api/auth/session", { headers: { cookie: cookie ?? "" } }),
+    );
+    const sessionBody = await json(sessionResponse);
 
-    expect(sessionResponse.status).toBe(200)
-    expect(sessionBody).toMatchObject({ ok: true, principal: { role: "operator", source: "session" } })
+    expect(sessionResponse.status).toBe(200);
+    expect(sessionBody).toMatchObject({
+      ok: true,
+      principal: { role: "operator", source: "session" },
+    });
 
     const logoutResponse = await logoutPost(
-      request("/api/auth/logout", { method: "POST", body: "{}", headers: { "content-type": "application/json", cookie: cookie ?? "" } })
-    )
+      request("/api/auth/logout", {
+        method: "POST",
+        body: "{}",
+        headers: { "content-type": "application/json", cookie: cookie ?? "" },
+      }),
+    );
 
-    expect(logoutResponse.status).toBe(200)
-    expect(logoutResponse.headers.get("set-cookie")).toContain("Max-Age=0")
-  })
+    expect(logoutResponse.status).toBe(200);
+    expect(logoutResponse.headers.get("set-cookie")).toContain("Max-Age=0");
+  });
 
   it("accepts bearer tokens for auth session checks", async () => {
-    process.env.ABOS_ADMIN_TOKEN = "test-token"
+    process.env.ABOS_ADMIN_TOKEN = "test-token";
 
-    const response = await sessionGet(request("/api/auth/session", { headers: { authorization: "Bearer test-token" } }))
-    const body = await json(response)
+    const response = await sessionGet(
+      request("/api/auth/session", {
+        headers: { authorization: "Bearer test-token" },
+      }),
+    );
+    const body = await json(response);
 
-    expect(response.status).toBe(200)
-    expect(body).toMatchObject({ ok: true, principal: { role: "admin", source: "bearer" } })
-  })
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      ok: true,
+      principal: { role: "admin", source: "bearer" },
+    });
+  });
 
   it("rejects tampered auth session cookies", async () => {
-    process.env.ABOS_ADMIN_TOKEN = "test-token"
+    process.env.ABOS_ADMIN_TOKEN = "test-token";
 
-    const response = await sessionGet(request("/api/auth/session", { headers: { cookie: "abos_session=tampered.signature" } }))
-    const body = await json(response)
+    const response = await sessionGet(
+      request("/api/auth/session", {
+        headers: { cookie: "abos_session=tampered.signature" },
+      }),
+    );
+    const body = await json(response);
 
-    expect(response.status).toBe(401)
-    expect(body).toMatchObject({ ok: false, error: "Unauthorized" })
-  })
+    expect(response.status).toBe(401);
+    expect(body).toMatchObject({ ok: false, error: "Unauthorized" });
+  });
 
   it("rejects auth sessions with invalid tokens", async () => {
-    process.env.ABOS_ADMIN_TOKEN = "test-token"
+    process.env.ABOS_ADMIN_TOKEN = "test-token";
 
     const response = await loginPost(
       request("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ token: "wrong-token" }),
         headers: { "content-type": "application/json" },
-      })
-    )
-    const body = await json(response)
+      }),
+    );
+    const body = await json(response);
 
-    expect(response.status).toBe(401)
-    expect(body).toMatchObject({ ok: false, error: "Unauthorized" })
-  })
+    expect(response.status).toBe(401);
+    expect(body).toMatchObject({ ok: false, error: "Unauthorized" });
+  });
 
   it("rejects unexpected query params", async () => {
-    const response = await healthGet(request("/api/abos/health?unexpected=true"))
-    const body = await json(response)
+    const response = await healthGet(
+      request("/api/abos/health?unexpected=true"),
+    );
+    const body = await json(response);
 
-    expect(response.status).toBe(400)
-    expect(body).toMatchObject({ ok: false, error: "Invalid request payload" })
-  })
-})
+    expect(response.status).toBe(400);
+    expect(body).toMatchObject({ ok: false, error: "Invalid request payload" });
+  });
+});
