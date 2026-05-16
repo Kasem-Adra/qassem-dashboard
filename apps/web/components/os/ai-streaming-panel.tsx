@@ -3,7 +3,7 @@
 import { FormEvent, useState } from 'react'
 
 export function AIStreamingPanel() {
-  const [prompt, setPrompt] = useState('Design the next AI OS workflow.')
+  const [prompt, setPrompt] = useState('Draft a launch plan for the next workflow.')
   const [tokens, setTokens] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -56,6 +56,21 @@ export function AIStreamingPanel() {
   }
 
   return (
+ codex/continue-implementing-the-dashboard
+    <section className="flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div>
+        <p className="text-xs uppercase tracking-[.28em] text-[#00a4aa]">AI</p>
+        <h2 className="mt-2 text-xl font-semibold tracking-tight">Prompt runner</h2>
+      </div>
+      <div className="mt-4 flex-1 space-y-3 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+        {tokens.length === 0 && <p className="text-slate-500">Run a prompt to see the stream.</p>}
+        {tokens.map((token, index) => <p key={`${token}-${index}`}>{token}</p>)}
+      </div>
+      <form onSubmit={run} className="mt-4 space-y-3">
+        <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} className="min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-950 outline-none ring-cyan-200 transition placeholder:text-slate-400 focus:bg-white focus:ring-4" />
+        <button disabled={loading} className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:opacity-50">
+          {loading ? 'Streaming…' : 'Run prompt'}
+
     <section className="flex h-full flex-col rounded-[1.5rem] border border-slate-200 bg-white p-4">
       <div>
         <p className="text-xs uppercase tracking-[.28em] text-[#00a4aa]">AI Runtime</p>
@@ -69,6 +84,7 @@ export function AIStreamingPanel() {
         <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} className="min-h-24 w-full rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-950 outline-none ring-cyan-200 transition placeholder:text-slate-400 focus:bg-white focus:ring-4" />
         <button disabled={loading} className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:opacity-50">
           {loading ? 'Streaming...' : 'Run AI Stream'}
+ main
         </button>
       </form>
     </section>

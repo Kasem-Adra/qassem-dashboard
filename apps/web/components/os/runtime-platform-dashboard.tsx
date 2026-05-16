@@ -81,7 +81,7 @@ export function RuntimePlatformDashboard() {
   const [selectedTaskId, setSelectedTaskId] = useState("")
   const [adminToken, setAdminToken] = useState("")
   const [streamEvents, setStreamEvents] = useState<RuntimeLog[]>([])
-  const [status, setStatus] = useState("Idle")
+  const [status, setStatus] = useState("Ready")
 
   useEffect(() => {
     let mounted = true
@@ -151,9 +151,15 @@ export function RuntimePlatformDashboard() {
   return (
     <section className="space-y-4">
       <div>
+ codex/continue-implementing-the-dashboard
+        <p className="text-xs uppercase tracking-[.25em] text-[#00a4aa]">Operations</p>
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight">Operations console</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600">Review tasks, agents, notes, logs, and live activity.</p>
+
         <p className="text-xs uppercase tracking-[.25em] text-[#00a4aa]">Runtime Platform</p>
         <h2 className="mt-2 text-2xl font-bold">Developer Console</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">Tasks, agents, memory, logs, controls, and live execution events.</p>
+ main
       </div>
 
       <div className="grid gap-3 sm:grid-cols-4">
@@ -163,18 +169,26 @@ export function RuntimePlatformDashboard() {
         <Metric label="Failed" value={overview.metrics.failures ?? 0} />
       </div>
 
-      <Panel title="Runtime Controls">
+      <Panel title="Task controls">
         <input
+ codex/continue-implementing-the-dashboard
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+
           className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-950 outline-none placeholder:text-slate-400"
+ main
           onChange={(event) => setAdminToken(event.target.value)}
-          placeholder="ABOS admin token for protected actions"
+          placeholder="Admin token"
           type="password"
           value={adminToken}
         />
         <div className="mt-3 grid grid-cols-2 gap-2">
           {controls.map((control) => (
             <button
+ codex/continue-implementing-the-dashboard
+              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm capitalize text-slate-700 transition hover:bg-slate-50"
+
               className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm capitalize text-slate-700 transition hover:bg-slate-100"
+ main
               disabled={!selectedTask}
               key={control}
               onClick={() => sendControl(control)}
@@ -187,20 +201,28 @@ export function RuntimePlatformDashboard() {
         <p className="mt-3 text-xs text-slate-500">{status}</p>
       </Panel>
 
-      <Panel title="Task Queue">
+      <Panel title="Tasks">
         <div className="space-y-2">
-          {overview.tasks.length === 0 && <EmptyLine text="No runtime tasks yet." />}
+          {overview.tasks.length === 0 && <EmptyLine text="No tasks yet." />}
           {overview.tasks.map((task) => (
             <button
               className={`w-full rounded-xl border px-3 py-3 text-left transition ${
+ codex/continue-implementing-the-dashboard
+                task.id === selectedTask?.id ? "border-teal-200 bg-teal-50" : "border-slate-200 bg-white hover:bg-slate-50"
+
                 task.id === selectedTask?.id ? "border-cyan-200 bg-cyan-50" : "border-slate-200 bg-slate-50 hover:bg-slate-50"
+ main
               }`}
               key={task.id}
               onClick={() => setSelectedTaskId(task.id)}
               type="button"
             >
               <div className="flex items-center justify-between gap-3">
+ codex/continue-implementing-the-dashboard
+                <span className="text-sm font-medium text-slate-950">{task.title}</span>
+
                 <span className="text-sm font-semibold text-slate-950">{task.title}</span>
+ main
                 <span className="rounded-full border border-slate-200 px-2 py-1 text-[11px] uppercase text-slate-600">{task.state}</span>
               </div>
               <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-600">{task.goal}</p>
@@ -212,42 +234,62 @@ export function RuntimePlatformDashboard() {
         </div>
       </Panel>
 
-      <Panel title="Agent Execution Monitor">
+      <Panel title="Agent activity">
         <div className="space-y-2">
           {(overview.metrics.agentTiming ?? []).slice(0, 8).map((timing) => (
+ codex/continue-implementing-the-dashboard
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" key={`${timing.taskId}-${timing.createdAt}-${timing.agent}`}>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="font-medium text-slate-950">{timing.agent ?? "agent"}</span>
+                <span className="text-teal-700">{timing.durationMs}ms</span>
+
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3" key={`${timing.taskId}-${timing.createdAt}-${timing.agent}`}>
               <div className="flex items-center justify-between gap-3 text-sm">
                 <span className="font-semibold text-slate-950">{timing.agent ?? "agent"}</span>
                 <span className="text-[#007a7f]">{timing.durationMs}ms</span>
+ main
               </div>
               <p className="mt-1 text-xs text-slate-500">{shortTime(timing.createdAt)}</p>
             </div>
           ))}
-          {(overview.metrics.agentTiming ?? []).length === 0 && <EmptyLine text="Agent timing appears after task execution." />}
+          {(overview.metrics.agentTiming ?? []).length === 0 && <EmptyLine text="Timing appears after a task runs." />}
         </div>
       </Panel>
 
-      <Panel title="Memory Graph Inspector">
+      <Panel title="Memory">
         <div className="space-y-2">
           {overview.memories.slice(0, 8).map((memory) => (
+ codex/continue-implementing-the-dashboard
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" key={memory.id}>
+              <p className="text-xs uppercase tracking-[.2em] text-teal-700">{memory.kind}</p>
+
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3" key={memory.id}>
               <p className="text-xs uppercase tracking-[.2em] text-emerald-700">{memory.kind}</p>
+ main
               <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{memory.content}</p>
               <p className="mt-2 text-xs text-slate-500">{memory.entityType ?? "entity"}:{memory.entityId ?? memory.id}</p>
             </div>
           ))}
-          {overview.memories.length === 0 && <EmptyLine text="No memory nodes found." />}
+          {overview.memories.length === 0 && <EmptyLine text="No memory yet." />}
         </div>
       </Panel>
 
-      <Panel title="Runtime Logs">
+      <Panel title="Logs">
         <LogList logs={overview.logs} />
       </Panel>
 
-      <Panel title="Streaming Events">
+      <Panel title="Live events">
         <LogList logs={streamEvents} />
-        {!selectedTask && <EmptyLine text="Select a task to open its event stream." />}
+        {!selectedTask && <EmptyLine text="Select a task to see live events." />}
       </Panel>
+
+ codex/continue-implementing-the-dashboard
+      <Panel title="Connected objects">
+        <div className="grid gap-2 text-xs text-slate-600">
+          <ApiRow label="Flows" value={overview.workflows?.length ?? 0} />
+          <ApiRow label="Tools" value={overview.tools?.length ?? 0} />
+          <ApiRow label="Agents" value={overview.agentDefinitions?.length ?? 0} />
+          <ApiRow label="Hooks" value={overview.hooks?.length ?? 0} />
 
       <Panel title="Developer APIs">
         <div className="grid gap-2 text-xs text-slate-600">
@@ -255,6 +297,7 @@ export function RuntimePlatformDashboard() {
           <ApiRow label="Custom tools" value={overview.tools?.length ?? 0} />
           <ApiRow label="Agent definitions" value={overview.agentDefinitions?.length ?? 0} />
           <ApiRow label="Runtime hooks" value={overview.hooks?.length ?? 0} />
+ main
           <ApiRow label="Snapshots" value={overview.snapshots?.length ?? 0} />
           <ApiRow label="Roles" value={overview.roles?.length ?? 0} />
         </div>
@@ -265,33 +308,54 @@ export function RuntimePlatformDashboard() {
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
+ codex/continue-implementing-the-dashboard
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="text-[11px] uppercase tracking-[.2em] text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
+
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
       <p className="text-[11px] uppercase tracking-[.2em] text-slate-500">{label}</p>
       <p className="mt-2 text-2xl font-bold text-slate-950">{value}</p>
+ main
     </div>
   )
 }
 
 function Panel({ children, title }: { children: ReactNode; title: string }) {
   return (
+ codex/continue-implementing-the-dashboard
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="text-sm font-medium text-slate-950">{title}</h3>
+
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
       <h3 className="text-sm font-semibold text-slate-950">{title}</h3>
+ main
       <div className="mt-3">{children}</div>
     </div>
   )
 }
 
 function EmptyLine({ text }: { text: string }) {
+ codex/continue-implementing-the-dashboard
+  return <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-500">{text}</p>
+
   return <p className="rounded-xl border border-dashed border-slate-200 p-3 text-sm text-slate-500">{text}</p>
+ main
 }
 
 function LogList({ logs }: { logs: RuntimeLog[] }) {
   return (
     <div className="space-y-2">
       {logs.slice(0, 10).map((log) => (
+ codex/continue-implementing-the-dashboard
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" key={log.id}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold text-teal-700">{log.eventType}</p>
+
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3" key={log.id}>
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-semibold text-[#007a7f]">{log.eventType}</p>
+ main
             <p className="text-[11px] text-slate-500">{shortTime(log.createdAt)}</p>
           </div>
           <p className="mt-2 text-sm leading-6 text-slate-600">{log.message}</p>
@@ -306,7 +370,11 @@ function ApiRow({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
       <span>{label}</span>
+ codex/continue-implementing-the-dashboard
+      <span className="font-medium text-slate-950">{value}</span>
+
       <span className="font-semibold text-slate-950">{value}</span>
+ main
     </div>
   )
 }
