@@ -1,0 +1,21 @@
+name = "qassem-ai-os-worker"
+main = "apps/workers/src/index.ts"
+compatibility_date = "2026-05-15"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "qassem-db"
+database_id = "PASTE_QASSEM_DB_UUID_HERE"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "qassem-media"
+
+[[durable_objects.bindings]]
+name = "AI_ROOM"
+class_name = "AIRoom"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["AIRoom"]

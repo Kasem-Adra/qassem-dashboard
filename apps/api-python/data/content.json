@@ -1,0 +1,15 @@
+{
+  "brand": {
+    "publicName": "Qassem.net",
+    "officialName": "Kasem Adra",
+    "title": "Systems Architect & Digital Operations Strategist",
+    "logoText": "Qassem.net",
+    "logoMark": "Q",
+    "logoImage": ""
+  },
+  "maintenance": {
+    "enabled": false,
+    "title": "Under Maintenance",
+    "message": "The website is currently being improved. Please check back soon."
+  }
+}

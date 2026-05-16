@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<!-- Qassem.net dashboard. Styles and scripts are separated under /assets. -->
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Qassem.net — Digital Operations Center</title>
+<link rel="stylesheet" href="/assets/css/dashboard.css">
+</head>
+<body>
+<section class="login" id="login"><div class="login-card"><div class="brand"><span class="brand-mark">Q</span><div><strong>Qassem.net</strong><div class="muted">Digital Operations Center</div></div></div><h1>Control the whole site.</h1><p class="muted">Server-connected dashboard for Qassem.net. Changes are saved to the API and appear on all browsers.</p><div class="field"><label>Password</label><input id="password" type="password" placeholder="Admin password" onkeydown="if(event.key==='Enter')doLogin()"></div><button class="btn primary" style="width:100%" onclick="doLogin()">Enter dashboard</button></div></section>
+
+<section class="app hidden" id="app">
+<aside class="sidebar"><div class="brand"><span class="brand-mark">Q</span><div><strong>Qassem.net</strong><div class="muted">Full Site CMS</div></div></div><div class="side-title">Controls</div><div class="tabs" id="tabs"></div></aside>
+<main class="main">
+<header class="topbar"><div><h1>Digital Operations Center</h1><div class="muted">Hero, scenes, identity, systems, work, credentials, SEO, theme and maintenance.</div></div><div class="actions"><a class="btn" href="/" target="_blank">Open site</a><button class="btn" onclick="exportContent()">Export</button><button class="btn primary" onclick="save()">Save</button><button class="btn danger" onclick="logout()">Logout</button></div></header>
+<section class="metrics"><div class="metric"><small>Brand</small><b>Qassem.net</b></div><div class="metric"><small>Storage</small><b>Server API</b></div><div class="metric"><small>Sections</small><b id="count">0</b></div><div class="metric"><small>Status</small><b>Live</b></div></section>
+<section class="workspace"><article class="panel"><div class="panel-head"><div><h2 id="title">Hero</h2><p class="muted" id="hint">Edit section</p></div><button class="btn" onclick="resetSection()">Reset</button></div><div id="notice"></div><div id="editor"></div></article>
+<aside class="help"><div class="helper"><h3>Real CMS</h3><p>This dashboard saves to /api/admin/content. The website reads /api/content, so updates work on Edge, Chrome, mobile and all devices.</p></div><div class="helper"><h3>Quick edit</h3><div class="quick"><button onclick="setActive('hero')">Hero</button><button onclick="setActive('slider')">Homepage scenes</button><button onclick="setActive('systems')">System layers</button><button onclick="setActive('certifications')">Credentials</button><button onclick="setActive('maintenance')">Maintenance mode</button></div></div><div class="helper"><h3>Identity rule</h3><p>Public identity: Qassem.net. Official documents: Kasem Adra.</p></div></aside></section>
+</main></section>
+
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/dashboard.js" defer></script>
+</body>
+</html>

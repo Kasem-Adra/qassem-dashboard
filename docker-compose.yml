@@ -1,0 +1,12 @@
+services:
+  qassem-api:
+    build:
+      context: ./apps/api-python
+    ports:
+      - "8000:8000"
+    environment:
+      ADMIN_PASSWORD: "change-this-password"
+      CONTENT_FILE: "./data/content.json"
+      CORS_ORIGINS: "*"
+    volumes:
+      - ./apps/api-python/data:/app/data

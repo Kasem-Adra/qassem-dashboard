@@ -1,0 +1,46 @@
+{
+  "name": "@qassem/web",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@qassem/abos-core": "workspace:*",
+    "@qassem/ai-core": "workspace:*",
+    "@qassem/realtime": "workspace:*",
+    "@qassem/runtime-core": "workspace:*",
+    "@qassem/theme-engine": "workspace:*",
+    "@qassem/ui": "workspace:*",
+    "@tailwindcss/postcss": "latest",
+    "drizzle-orm": "^0.45.2",
+    "framer-motion": "latest",
+    "lucide-react": "^1.16.0",
+    "next": "latest",
+    "pg": "^8.20.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "zod": "^4.4.3",
+    "zustand": "latest"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.6",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "autoprefixer": "^10.5.0",
+    "drizzle-kit": "^0.31.10",
+    "postcss": "^8.5.14",
+    "tailwindcss": "^4.3.0",
+    "typescript": "latest",
+    "vitest": "^4.1.6"
+  }
+}

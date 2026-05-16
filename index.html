@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <!-- Qassem.net public website. Styles and scripts are separated under /assets. -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="Qassem.net — Systems Architect & Digital Operations Strategist." />
+  <meta property="og:title" content="Qassem.net — Systems Architect" />
+  <meta property="og:description" content="A modern digital identity for systems architecture, infrastructure, cybersecurity, AI operations and strategy." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/og-image.png" />
+  <title>Qassem.net — Systems Architect</title>
+
+  <script src="/assets/default-content.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/assets/css/site.css">
+</head>
+
+<body>
+  <nav class="nav" id="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="#top">
+      <span class="brand-mark" id="brandMark">Q</span>
+      <span class="brand-copy">
+        <strong id="brandName">Qassem.net</strong>
+        <small id="brandTagline">Systems Architect & Digital Operations</small>
+      </span>
+    </a>
+      <div class="nav-links">
+        <a href="#identity">Identity</a>
+        <a href="#systems">Systems</a>
+        <a href="#work">Work</a>
+        <a href="#credentials">Credentials</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <a class="nav-cta" href="#contact">Start</a>
+      <button class="menu" onclick="document.getElementById('nav').classList.toggle('open')" aria-label="Menu">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
+    <div class="container hero-grid">
+      <div>
+        <div class="eyebrow" id="heroEyebrow">Qassem.net · Systems Architect</div>
+        <h1 id="heroTitle">Architecting intelligent digital infrastructure.</h1>
+        <p class="hero-lead" id="heroDescription">I design and operate secure digital systems across media infrastructure, cloud, cybersecurity, AI, data, project management and business transformation.</p>
+        <div class="chips" id="heroChips"></div>
+        <div class="actions">
+          <a class="btn primary" id="primaryBtn" href="#systems">Explore Systems</a>
+          <a class="btn" id="secondaryBtn" href="#contact">Contact</a>
+        </div>
+      </div>
+
+      <aside class="identity-visual">
+        <div class="system-orbit" aria-hidden="true"></div>
+        <div class="visual-panel">
+          <small>Architect + Operator + Strategist</small>
+          <h3>Qassem.net</h3>
+          <p>Public identity for Kasem Adra: systems architecture, digital operations and strategic transformation.</p>
+        </div>
+      </aside>
+    </div>
+  </header>
+
+  <section class="scene-section">
+    <div class="container">
+      <div class="scene">
+        <div class="scene-copy">
+          <div class="slide-label" id="slideLabel">Operating Identity</div>
+          <h2 id="slideTitle">From content systems to enterprise architecture.</h2>
+          <p id="slideDescription">A modern personal platform built around media infrastructure, digital operations, cloud, cybersecurity, AI and business strategy.</p>
+          <a class="btn" id="slideButton" href="#identity">View identity</a>
+        </div>
+        <div class="scene-symbol"><span>SA</span></div>
+        <div class="scene-controls">
+          <div class="dots" id="sliderDots"></div>
+          <div class="scene-buttons">
+            <button onclick="prevSlide()" aria-label="Previous">←</button>
+            <button onclick="nextSlide()" aria-label="Next">→</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main class="light">
+    <section class="block" id="identity">
+      <div class="container section-grid">
+        <div>
+          <div class="section-label">Identity</div>
+          <h2 id="aboutTitle"></h2>
+        </div>
+        <div class="panel copy">
+          <p id="aboutParagraph1"></p>
+          <p id="aboutParagraph2"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="container principles" id="principlesGrid"></div>
+    </section>
+
+    <section class="block" id="systems">
+      <div class="container section-grid">
+        <div><div class="section-label">Architecture</div><h2>System layers.</h2></div>
+        <div class="layers" id="systemsGrid"></div>
+      </div>
+    </section>
+
+    <section class="block" id="work">
+      <div class="container section-grid">
+        <div><div class="section-label">Work</div><h2>Selected systems.</h2></div>
+        <div class="cards" id="projectsGrid"></div>
+      </div>
+    </section>
+
+    <section class="block" id="expertise">
+      <div class="container section-grid">
+        <div><div class="section-label">Expertise</div><h2>Technical and strategic depth.</h2></div>
+        <div class="cards" id="expertiseGrid"></div>
+      </div>
+    </section>
+
+    <section class="block" id="skills">
+      <div class="container section-grid">
+        <div><div class="section-label">Skills</div><h2>Measured capabilities.</h2></div>
+        <div class="panel skills" id="skillsGrid"></div>
+      </div>
+    </section>
+
+    <section class="block" id="credentials">
+      <div class="container section-grid">
+        <div><div class="section-label">Credentials</div><h2>Proof of range.</h2></div>
+        <div class="cards" id="certificationsGrid"></div>
+      </div>
+    </section>
+
+    <section class="block" id="education">
+      <div class="container section-grid">
+        <div><div class="section-label">Education</div><h2>Business and technology.</h2></div>
+        <div class="cards" id="educationGrid"></div>
+      </div>
+    </section>
+
+    <section class="block" id="blog">
+      <div class="container section-grid">
+        <div><div class="section-label">Writing</div><h2>Ideas and insights.</h2></div>
+        <div class="cards" id="blogGrid"></div>
+      </div>
+    </section>
+
+    <section class="block" id="contact">
+      <div class="container">
+        <div class="contact">
+          <div>
+            <div class="section-label">Contact</div>
+            <h2 id="contactTitle"></h2>
+            <p class="copy" id="contactDescription"></p>
+            <div class="contact-links" id="contactLinks"></div><div class="social-grid" id="socialLinks"></div>
+          </div>
+          <div>
+            <form action="https://api.web3forms.com/submit" method="POST">
+              <input type="hidden" name="access_key" value="3b6ba269-b668-4e03-991e-3f8553458a42">
+              <input name="name" placeholder="Your name" required>
+              <input name="email" type="email" placeholder="Email address" required>
+              <textarea name="message" placeholder="Your message" required></textarea>
+              <button class="btn primary" type="submit">Send message</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <strong>Qassem.net</strong>
+      <span>© <span id="year"></span> Systems Architect & Digital Operations Strategist.</span>
+    </div>
+  </footer>
+
+  <script src="/assets/js/config.js"></script>
+  <script src="/assets/js/site.js" defer></script>
+</body>
+</html>
