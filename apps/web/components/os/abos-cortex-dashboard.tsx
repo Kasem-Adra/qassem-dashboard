@@ -1,499 +1,211 @@
 "use client"
 
-import {
-  createDemoMemoryEvents,
-  createDemoStreamEvent,
-  demoAgents,
-  demoDecisions,
-  demoHealth,
-  demoMemoryEvents,
-  demoRecommendations,
-  demoRisks,
-  type DemoStreamEvent,
-} from "../../lib/abos-demo"
+import { useEffect, useMemo, useState } from "react"
 import { apiEventSource, apiJson } from "../../lib/api-client"
- codex/continue-implementing-the-dashboard
 
-import { WebsiteStudio } from "./website-studio"
- main
-import { useEffect, useState, type ReactNode } from "react"
-import { WebsiteStudio } from "./website-studio"
+type Agent = { name: string; status: string; mission: string }
+type Risk = { title: string; severity: string; probability: number }
+type MemoryEvent = { title: string; description: string; time: string }
+type LiveScore = { operationalScore: number; riskScore: number }
+type Decision = { priority: string; title: string; reason: string; action: string }
 
-type Health = typeof demoHealth
-type Agent = (typeof demoAgents)[number]
-type Decision = (typeof demoDecisions)[number]
-type MemoryEvent = (typeof demoMemoryEvents)[number]
-type Risk = (typeof demoRisks)[number]
-type LiveEvent = DemoStreamEvent
+const fallbackAgents: Agent[] = [
+  { name: "Launch Ops", status: "online", mission: "Coordinates launch plans and approvals" },
+  { name: "Risk Desk", status: "online", mission: "Reviews delivery, revenue, and client health" },
+  { name: "Content Lead", status: "online", mission: "Keeps website copy ready to publish" },
+]
 
- codex/continue-implementing-the-dashboard
-const navItems = ["Overview", "Website", "Risks", "Agents", "Notes", "Actions"]
+const fallbackRisks: Risk[] = [
+  { title: "Enterprise onboarding", severity: "High", probability: 72 },
+  { title: "Launch approvals", severity: "Medium", probability: 54 },
+]
 
-const navItems = ["Overview", "Content", "Risks", "Agents", "Memory", "Decisions"]
- main
+const fallbackRecommendations = ["Confirm launch owner for the homepage refresh", "Move blocked approvals into executive review", "Prepare a client-ready summary for this week"]
+const fallbackMemory: MemoryEvent[] = [
+  { title: "Website brief approved", description: "Positioning, offer, and conversion goals were finalized.", time: "Live sync pending" },
+  { title: "Operations review scheduled", description: "Leadership review is ready for the next planning cycle.", time: "Live sync pending" },
+]
 
 export function ABOSCortexDashboard() {
-  const [health, setHealth] = useState<Health>(demoHealth)
-  const [risks, setRisks] = useState<Risk[]>(demoRisks)
-  const [recommendations, setRecommendations] = useState<string[]>(demoRecommendations)
-  const [memoryEvents, setMemoryEvents] = useState<MemoryEvent[]>(demoMemoryEvents)
-  const [agents, setAgents] = useState<Agent[]>(demoAgents)
-  const [decisions, setDecisions] = useState<Decision[]>(demoDecisions)
-  const [liveEvent, setLiveEvent] = useState<LiveEvent | null>(null)
+  const [agents, setAgents] = useState<Agent[]>(fallbackAgents)
+  const [risks, setRisks] = useState<Risk[]>(fallbackRisks)
+  const [recommendations, setRecommendations] = useState<string[]>(fallbackRecommendations)
+  const [memory, setMemory] = useState<MemoryEvent[]>(fallbackMemory)
+  const [score, setScore] = useState<LiveScore>({ operationalScore: 92, riskScore: 18 })
+  const [decisions, setDecisions] = useState<Decision[]>([])
+  const [streamMessage, setStreamMessage] = useState("Live operating signals are synchronized.")
 
   useEffect(() => {
-    apiJson<Health>("/api/abos/health", { fallback: demoHealth }).then(setHealth)
-    apiJson<{ risks?: Risk[] }>("/api/abos/risks", { fallback: { risks: demoRisks } }).then((data) => setRisks(data.risks ?? demoRisks))
-    apiJson<{ recommendations?: string[] }>("/api/abos/recommendations", { fallback: { recommendations: demoRecommendations } }).then((data) =>
-      setRecommendations(data.recommendations ?? demoRecommendations)
-    )
-    const currentDemoMemoryEvents = createDemoMemoryEvents("Live sync pending")
-
-    apiJson<{ events?: MemoryEvent[] }>("/api/abos/memory", { fallback: { events: currentDemoMemoryEvents } }).then((data) =>
-      setMemoryEvents(data.events ?? currentDemoMemoryEvents)
-    )
-    apiJson<{ agents?: Agent[] }>("/api/abos/agents", { fallback: { agents: demoAgents } }).then((data) => setAgents(data.agents ?? demoAgents))
-    apiJson<{ decisions?: Decision[] }>("/api/abos/decisions", { fallback: { decisions: demoDecisions } }).then((data) =>
-      setDecisions(data.decisions ?? demoDecisions)
-    )
-
-    const stream = apiEventSource("/api/abos/stream")
-
-    stream.onmessage = (event) => {
-      try {
-        setLiveEvent(JSON.parse(event.data) as LiveEvent)
-      } catch {
-        setLiveEvent(null)
-      }
-    }
-
-    stream.onerror = () => {
-      setLiveEvent(createDemoStreamEvent(Math.floor(82 + Math.random() * 12), Math.floor(45 + Math.random() * 55), new Date().toISOString()))
-      stream.close()
-    }
-
-    return () => stream.close()
+    apiJson<{ agents: Agent[] }>("/api/abos/agents", { fallback: { agents: fallbackAgents } }).then((data) => setAgents(data.agents))
+    apiJson<{ risks: Risk[] }>("/api/abos/risks", { fallback: { risks: fallbackRisks } }).then((data) => setRisks(data.risks))
+    apiJson<{ recommendations: string[] }>("/api/abos/recommendations", { fallback: { recommendations: fallbackRecommendations } }).then((data) => setRecommendations(data.recommendations))
+    apiJson<{ events: MemoryEvent[] }>("/api/abos/memory", { fallback: { events: fallbackMemory } }).then((data) => setMemory(data.events))
+    apiJson<LiveScore>("/api/abos/live-score", { fallback: { operationalScore: 92, riskScore: 18 } }).then(setScore)
+    apiJson<{ decisions: Decision[] }>("/api/abos/decisions", { fallback: { decisions: [] } }).then((data) => setDecisions(data.decisions))
   }, [])
 
+  useEffect(() => {
+    const source = apiEventSource("/api/abos/stream")
+    source.onmessage = (event) => {
+      const payload = JSON.parse(event.data) as { health?: number; risk?: number; message?: string }
+      setScore({ operationalScore: payload.health ?? 92, riskScore: payload.risk ?? 18 })
+      setStreamMessage(payload.message ?? "New operating signals are ready.")
+    }
+    return () => source.close()
+  }, [])
+
+  const runway = useMemo(() => Math.max(0, 100 - score.riskScore), [score.riskScore])
+
   return (
- codex/continue-implementing-the-dashboard
-    <main className="min-h-screen bg-slate-50 text-slate-950">
-      <div className="grid min-h-screen lg:grid-cols-[264px_1fr]">
-        <aside className="border-r border-slate-200 bg-white px-4 py-5">
-          <div className="flex items-center gap-3 px-2">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-slate-950 text-sm font-semibold text-white">Q</div>
-            <div>
-              <p className="text-sm font-semibold tracking-tight">Qassem Studio</p>
-              <p className="text-xs text-slate-500">Website and operations</p>
+    <div className="space-y-6">
+      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+        <div className="grid lg:grid-cols-[1fr_380px]">
+          <div className="p-6 md:p-8">
+            <p className="inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-black uppercase tracking-[.18em] text-indigo-700">Executive overview</p>
+            <h2 className="mt-6 max-w-4xl text-4xl font-black tracking-[-.055em] text-slate-950 md:text-6xl">A premium operating dashboard for content, clients, and AI work.</h2>
+            <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600">Review performance, risks, decisions, agents, and context without leaving a clean SaaS workspace.</p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              <Metric label="Operational score" value={`${score.operationalScore}%`} tone="indigo" />
+              <Metric label="Risk exposure" value={`${score.riskScore}%`} tone="rose" />
+              <Metric label="Execution runway" value={`${runway}%`} tone="emerald" />
             </div>
           </div>
-
-          <nav className="mt-8 space-y-1" aria-label="Dashboard navigation">
-            {navItems.map((item, index) => (
-              <button
-                className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
-                  index === 0 ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
-
-    <main className="min-h-screen bg-[#f7f8fb] text-slate-950">
-      <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
-        <aside className="border-r border-slate-200 bg-white px-5 py-6">
-          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#00b3b8] text-lg font-black text-white shadow-sm">A</div>
-            <div>
-              <p className="text-sm font-bold text-slate-950">ABOS Cortex</p>
-              <p className="text-xs text-slate-500">Autonomous OS</p>
-            </div>
-          </div>
-
-          <nav className="mt-8 space-y-1">
-            {navItems.map((item, index) => (
-              <button
-                className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
-                  index === 0 ? "bg-[#ecfeff] text-[#007a7f]" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
- main
-                }`}
-                key={item}
-                type="button"
-              >
- codex/continue-implementing-the-dashboard
-                {item}
-              </button>
-            ))}
-          </nav>
-        </aside>
-
-        <section className="min-w-0">
-          <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-5 py-4 backdrop-blur-xl lg:px-8">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[.18em] text-teal-700">Dashboard</p>
-                <h1 className="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">Manage the site and daily work.</h1>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="hidden min-w-72 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500 md:block">Search pages, tasks, risks...</div>
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">Live</span>
-              </div>
-            </div>
-          </header>
-
-          <div className="space-y-6 p-5 lg:p-8">
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
-              <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[.18em] text-teal-700">Overview</p>
-                  <h2 className="mt-3 max-w-3xl text-4xl font-semibold tracking-[-.045em] lg:text-6xl">A clear view of content, risks, and next steps.</h2>
-                  <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600">Publish site updates, review key risks, and keep day-to-day work moving from a single dashboard.</p>
-                  <div className="mt-7 flex flex-wrap gap-3">
-                    <a className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800" href="#risks">Review risks</a>
-                    <a className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50" href="/workspace">Open workspace</a>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm font-semibold">Latest update</p>
-                  {liveEvent ? (
-                    <div className="mt-4 space-y-4">
-                      <p className="text-sm leading-6 text-slate-600">{liveEvent.message}</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <MiniMetric label="Health" value={`${liveEvent.health}%`} />
-                        <MiniMetric label="Risk" value={`${liveEvent.risk}%`} />
-                      </div>
-                    </div>
-                  ) : (
-                    <EmptyState title="No live update yet" description="New updates appear here automatically." />
-                  )}
-                </div>
-              </div>
-            </section>
-
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <MetricCard title="Health score" value={health ? `${health.operationalHealth}%` : "..."} helper="Current status" />
-              <MetricCard title="Open risks" value={health ? String(health.criticalRisks) : "..."} helper="Needs review" />
-              <MetricCard title="Revenue in view" value={health ? `$${health.revenueExposure / 1000}K` : "..."} helper="Monitored value" />
-              <MetricCard title="Suggested actions" value={health ? String(health.aiActions) : "..."} helper="Ready to review" />
-            </div>
-
-            <WebsiteStudio />
-
-            <div className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]" id="risks">
-              <Panel eyebrow="Risks" title="Risk watchlist">
-                {risks.length === 0 ? <EmptyState title="No open risks" description="Risks appear here when attention is needed." /> : risks.map((risk) => (
-                  <RiskRow key={risk.title} title={risk.title} value={`${risk.probability}%`} description={`${risk.severity} priority. Review and choose a next step.`} />
-                ))}
-              </Panel>
-
-              <Panel eyebrow="Next steps" title="Recommended actions">
-                {recommendations.length === 0 ? <EmptyState title="No actions yet" description="Suggested actions appear after analysis." /> : recommendations.map((item, index) => (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4" key={item}>
-                    <div className="flex gap-3">
-                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">{index + 1}</span>
-                      <p className="text-sm leading-6 text-slate-700">{item}</p>
-                    </div>
-                  </div>
-                ))}
-              </Panel>
-            </div>
-
-            <div className="grid gap-6 xl:grid-cols-[.9fr_1.1fr]">
-              <Panel eyebrow="Notes" title="Recent context">
-                {memoryEvents.length === 0 ? <EmptyState title="No notes yet" description="Important updates will appear here." /> : memoryEvents.map((event) => (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4" key={event.title}>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <strong className="text-sm font-semibold text-slate-950">{event.title}</strong>
-                      <span className="text-xs text-slate-500">{event.time}</span>
-                    </div>
-                    <p className="mt-3 text-sm leading-6 text-slate-600">{event.description}</p>
-                  </div>
-                ))}
-              </Panel>
-
-              <Panel eyebrow="Team" title="Agents">
-                {agents.length === 0 ? <EmptyState title="No agents active" description="Active agents will appear here." /> : (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {agents.map((agent) => (
-                      <div className="rounded-2xl border border-slate-200 bg-white p-5" key={agent.name}>
-                        <p className="text-xs font-semibold uppercase tracking-[.16em] text-teal-700">{agent.status}</p>
-                        <h3 className="mt-3 text-lg font-semibold tracking-tight text-slate-950">{agent.name}</h3>
-
-                <span>{item}</span>
-                {index === 0 && <span className="h-2 w-2 rounded-full bg-[#00b3b8]" />}
-              </button>
-            ))}
-          </nav>
-
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-950 to-slate-800 p-4 text-white shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[.18em] text-cyan-200">Live system</p>
-            <p className="mt-3 text-sm leading-6 text-slate-300">Predictive signals and autonomous actions are synchronized across the workspace.</p>
-          </div>
-        </aside>
-
-        <section className="flex min-w-0 flex-col">
-          <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 px-6 py-4 backdrop-blur-xl lg:px-8">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[.22em] text-[#00a4aa]">ABOS Cortex V1</p>
-                <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">Business Operating Dashboard</h1>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="hidden min-w-64 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-500 md:block">Search workflows, risks, memory...</div>
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">Online</span>
-              </div>
-            </div>
-          </header>
-
-          <div className="space-y-6 p-6 lg:p-8">
-            <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-              <div className="grid gap-0 lg:grid-cols-[1fr_360px]">
-                <div className="p-6 md:p-8">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-bold uppercase tracking-[.16em] text-cyan-700">
-                    <span className="h-2 w-2 rounded-full bg-[#00b3b8]" /> Command overview
-                  </div>
-                  <h2 className="mt-6 max-w-3xl text-4xl font-black tracking-[-.04em] text-slate-950 md:text-6xl">Autonomous Business Operating System</h2>
-                  <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 md:text-lg">Predictive operational intelligence for autonomous companies, organized into clean workspaces, live cards, and executive-ready action queues.</p>
-                  <div className="mt-7 flex flex-wrap gap-3">
-                    <button className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800" type="button">Review risks</button>
-                    <button className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300" type="button">Open workspace</button>
-                  </div>
-                </div>
-
-                <div className="border-t border-slate-200 bg-slate-50 p-6 lg:border-l lg:border-t-0">
-                  <p className="text-sm font-bold text-slate-950">Live operational stream</p>
-                  <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                    {liveEvent ? (
-                      <>
-                        <p className="text-sm leading-6 text-slate-700">{liveEvent.message}</p>
-                        <div className="mt-4 grid grid-cols-2 gap-3">
-                          <MiniMetric label="Health" value={`${liveEvent.health}%`} tone="emerald" />
-                          <MiniMetric label="Risk" value={`${liveEvent.risk}%`} tone="amber" />
-                        </div>
-                      </>
-                    ) : (
-                      <EmptyState title="Waiting for stream" description="Live events will appear as ABOS publishes updates." />
-                    )}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <Card title="Operational Health" value={health ? `${health.operationalHealth}%` : "..."} accent="bg-emerald-500" helper="Stability index" />
-              <Card title="Critical Risks" value={health ? String(health.criticalRisks) : "..."} accent="bg-rose-500" helper="Needs triage" />
-              <Card title="Revenue Exposure" value={health ? `$${health.revenueExposure / 1000}K` : "..."} accent="bg-amber-500" helper="Open exposure" />
-              <Card title="AI Actions" value={health ? String(health.aiActions) : "..."} accent="bg-cyan-500" helper="Queued actions" />
-            </div>
-
-            <WebsiteStudio />
-
-            <div className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
-              <Section eyebrow="Risk center" title="Predicted Operational Failures">
-                {risks.length === 0 ? <EmptyState title="No risks detected" description="Operational risk rows will appear here when detected." /> : risks.map((risk) => (
-                  <RiskItem
-                    key={risk.title}
-                    title={risk.title}
-                    risk={`${risk.probability}% Risk`}
-                    tone={risk.probability >= 90 ? "rose" : risk.probability >= 70 ? "amber" : "orange"}
-                    description={`Severity: ${risk.severity}. Predictive operational risk detected by ABOS Cortex.`}
-                  />
-                ))}
-              </Section>
-
-              <Section eyebrow="Executive queue" title="AI Recommendations">
-                {recommendations.length === 0 ? <EmptyState title="No recommendations" description="Recommended actions will appear after risk analysis." /> : recommendations.map((item, index) => (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" key={item}>
-                    <div className="flex gap-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ecfeff] text-sm font-black text-[#007a7f]">{index + 1}</span>
-                      <p className="text-sm leading-6 text-slate-700">{item}</p>
-                    </div>
-                  </div>
-                ))}
-              </Section>
-            </div>
-
-            <div className="grid gap-6 xl:grid-cols-[.9fr_1.1fr]">
-              <Section eyebrow="Memory" title="Organizational Timeline">
-                {memoryEvents.length === 0 ? <EmptyState title="No memory events" description="Memory events will appear after activity is recorded." /> : memoryEvents.map((event) => (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" key={event.title}>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <strong className="text-sm font-bold text-slate-950">{event.title}</strong>
-                      <span className="text-xs font-medium text-slate-500">{event.time}</span>
-                    </div>
-                    <p className="mt-3 text-sm leading-6 text-slate-600">{event.description}</p>
-                  </div>
-                ))}
-              </Section>
-
-              <Section eyebrow="Agents" title="Autonomous Agents Network">
-                {agents.length === 0 ? <EmptyState title="No agents online" description="Registered agents will appear in this network." /> : (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {agents.map((agent) => (
-                      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" key={agent.name}>
-                        <p className="text-xs font-bold uppercase tracking-[.18em] text-[#00a4aa]">{agent.status}</p>
-                        <h3 className="mt-3 text-lg font-black text-slate-950">{agent.name}</h3>
- main
-                        <p className="mt-3 text-sm leading-6 text-slate-600">{agent.mission}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
- codex/continue-implementing-the-dashboard
-              </Panel>
-            </div>
-
-            <Panel eyebrow="Decisions" title="Decision queue">
-              {decisions.length === 0 ? <EmptyState title="No decisions queued" description="Decisions appear when action is needed." /> : decisions.map((decision) => (
-                <div className="rounded-2xl border border-slate-200 bg-white p-5" key={decision.title}>
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <h3 className="text-lg font-semibold tracking-tight text-slate-950">{decision.title}</h3>
-                    <PriorityBadge priority={decision.priority} />
-                  </div>
-                  <p className="mt-4 text-sm leading-7 text-slate-600">{decision.reason}</p>
-                  <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <strong className="text-sm font-semibold text-slate-950">Recommended step</strong>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{decision.action}</p>
-                  </div>
+          <div className="border-t border-slate-200 bg-slate-950 p-6 text-white lg:border-l lg:border-t-0">
+            <p className="text-xs font-black uppercase tracking-[.2em] text-indigo-300">Live stream</p>
+            <h3 className="mt-4 text-2xl font-black tracking-tight">{streamMessage}</h3>
+            <div className="mt-8 space-y-3">
+              {memory.slice(0, 3).map((event) => (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4" key={event.title}>
+                  <p className="text-sm font-bold text-white">{event.title}</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-300">{event.description}</p>
                 </div>
               ))}
-            </Panel>
-
-              </Section>
             </div>
-
-            <Section eyebrow="Decision engine" title="Autonomous Decision Engine">
-              {decisions.length === 0 ? <EmptyState title="No decisions queued" description="Autonomous decisions will appear when the engine recommends action." /> : decisions.map((decision) => (
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" key={decision.title}>
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <h3 className="text-xl font-black text-slate-950">{decision.title}</h3>
-                    <PriorityBadge priority={decision.priority} />
-                  </div>
-                  <p className="mt-4 text-sm leading-7 text-slate-600">{decision.reason}</p>
-                  <div className="mt-5 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
-                    <strong className="text-sm font-black text-[#007a7f]">Recommended Action</strong>
-                    <p className="mt-2 text-sm leading-6 text-slate-700">{decision.action}</p>
-                  </div>
-                </div>
-              ))}
-            </Section>
- main
           </div>
-        </section>
-      </div>
-    </main>
-  )
-}
-
- codex/continue-implementing-the-dashboard
-function MetricCard({ title, value, helper }: { title: string; value: string; helper: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm text-slate-500">{title}</p>
-      <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950">{value}</h2>
-
-function Card({ title, value, accent, helper }: { title: string; value: string; accent: string; helper: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-slate-500">{title}</p>
-        <span className={`h-3 w-3 rounded-full ${accent}`} />
-      </div>
-      <h2 className="mt-5 text-4xl font-black tracking-tight text-slate-950">{value}</h2>
- main
-      <p className="mt-2 text-xs font-medium uppercase tracking-[.16em] text-slate-400">{helper}</p>
-    </div>
-  )
-}
-
- codex/continue-implementing-the-dashboard
-function RiskRow({ title, value, description }: { title: string; value: string; description: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <h3 className="text-base font-semibold text-slate-950">{title}</h3>
-        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">{value}</span>
-
-function RiskItem({ title, risk, tone, description }: { title: string; risk: string; tone: "rose" | "amber" | "orange"; description: string }) {
-  const tones = {
-    rose: "bg-rose-50 text-rose-700 border-rose-200",
-    amber: "bg-amber-50 text-amber-700 border-amber-200",
-    orange: "bg-orange-50 text-orange-700 border-orange-200",
-  }
-
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <h3 className="text-base font-black text-slate-950">{title}</h3>
-        <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${tones[tone]}`}>{risk}</span>
- main
-      </div>
-      <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
-    </div>
-  )
-}
-
- codex/continue-implementing-the-dashboard
-function Panel({ title, eyebrow, children }: { title: string; eyebrow: string; children: ReactNode }) {
-  return (
-    <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[.18em] text-teal-700">{eyebrow}</p>
-      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{title}</h2>
-=======
-function Section({ title, eyebrow, children }: { title: string; eyebrow: string; children: ReactNode }) {
-  return (
-    <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[.18em] text-[#00a4aa]">{eyebrow}</p>
-          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">{title}</h2>
         </div>
+      </section>
+
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_.9fr]">
+        <Panel title="Work queue" eyebrow="Priority actions">
+          <div className="overflow-hidden rounded-2xl border border-slate-200">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs font-black uppercase tracking-[.14em] text-slate-400">
+                <tr>
+                  <th className="px-4 py-3">Action</th>
+                  <th className="px-4 py-3">Owner</th>
+                  <th className="px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 bg-white">
+                {recommendations.map((item, index) => (
+                  <tr key={item}>
+                    <td className="px-4 py-4 font-semibold text-slate-800">{item}</td>
+                    <td className="px-4 py-4 text-slate-500">Team {index + 1}</td>
+                    <td className="px-4 py-4"><StatusPill label={index === 0 ? "Ready" : "Queued"} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+
+        <Panel title="Risk watchlist" eyebrow="Coverage">
+          <div className="space-y-3">
+            {risks.length === 0 ? <EmptyState title="No risks found" description="The watchlist is clear right now." /> : risks.map((risk) => (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4" key={risk.title}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-black text-slate-950">{risk.title}</p>
+                    <p className="mt-1 text-xs font-medium text-slate-500">{risk.severity} priority</p>
+                  </div>
+                  <span className="text-sm font-black text-rose-600">{risk.probability}%</span>
+                </div>
+                <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-full rounded-full bg-rose-500" style={{ width: `${risk.probability}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Panel>
       </div>
- main
-      <div className="mt-5 flex flex-col gap-3">{children}</div>
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        <Panel title="AI agents" eyebrow="Runtime team">
+          <div className="space-y-3">
+            {agents.map((agent) => (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4" key={agent.name}>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-black text-slate-950">{agent.name}</p>
+                  <StatusPill label={agent.status} />
+                </div>
+                <p className="mt-2 text-xs leading-5 text-slate-500">{agent.mission}</p>
+              </div>
+            ))}
+          </div>
+        </Panel>
+
+        <Panel title="Decision log" eyebrow="Approvals">
+          <div className="space-y-3">
+            {(decisions.length ? decisions : [{ priority: "high", title: "Approve launch plan", reason: "Homepage refresh is ready for review.", action: "Route to leadership" }]).slice(0, 3).map((decision) => (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4" key={decision.title}>
+                <p className="text-xs font-black uppercase tracking-[.14em] text-indigo-600">{decision.priority}</p>
+                <h3 className="mt-2 text-sm font-black text-slate-950">{decision.title}</h3>
+                <p className="mt-2 text-xs leading-5 text-slate-500">{decision.reason}</p>
+              </div>
+            ))}
+          </div>
+        </Panel>
+
+        <Panel title="Settings" eyebrow="Workspace">
+          <form className="space-y-4">
+            <label className="block">
+              <span className="text-xs font-black uppercase tracking-[.14em] text-slate-400">Workspace name</span>
+              <input className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-950 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" defaultValue="Qassem Cloud" />
+            </label>
+            <label className="block">
+              <span className="text-xs font-black uppercase tracking-[.14em] text-slate-400">Approval mode</span>
+              <select className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-950 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" defaultValue="managed">
+                <option value="managed">Managed approvals</option>
+                <option value="open">Open publishing</option>
+              </select>
+            </label>
+            <button className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white" type="button">Save preferences</button>
+          </form>
+        </Panel>
+      </div>
+    </div>
+  )
+}
+
+function Panel({ children, eyebrow, title }: { children: React.ReactNode; eyebrow: string; title: string }) {
+  return (
+    <section className="rounded-[1.75rem] border border-slate-200 bg-white/80 p-5 shadow-sm">
+      <p className="text-xs font-black uppercase tracking-[.18em] text-indigo-600">{eyebrow}</p>
+      <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">{title}</h2>
+      <div className="mt-5">{children}</div>
     </section>
   )
 }
 
- codex/continue-implementing-the-dashboard
-function MiniMetric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, tone }: { label: string; value: string; tone: 'indigo' | 'rose' | 'emerald' }) {
+  const tones = { indigo: 'text-indigo-600 bg-indigo-50', rose: 'text-rose-600 bg-rose-50', emerald: 'text-emerald-600 bg-emerald-50' }
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-3">
-      <p className="text-xs font-medium uppercase tracking-[.16em] text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
-
-function MiniMetric({ label, value, tone }: { label: string; value: string; tone: "emerald" | "amber" }) {
-  const color = tone === "emerald" ? "text-emerald-700 bg-emerald-50 border-emerald-100" : "text-amber-700 bg-amber-50 border-amber-100"
-  return (
-    <div className={`rounded-2xl border p-3 ${color}`}>
-      <p className="text-xs font-bold uppercase tracking-[.16em]">{label}</p>
-      <p className="mt-1 text-2xl font-black">{value}</p>
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p className={`inline-flex rounded-full px-2.5 py-1 text-xs font-black ${tones[tone]}`}>{label}</p>
+      <p className="mt-4 text-3xl font-black tracking-[-.04em] text-slate-950">{value}</p>
     </div>
   )
+}
+
+function StatusPill({ label }: { label: string }) {
+  return <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-black capitalize text-emerald-700">{label}</span>
 }
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5 text-center">
-      <p className="text-sm font-black text-slate-700">{title}</p>
-      <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
- main
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+      <p className="text-sm font-black text-slate-950">{title}</p>
+      <p className="mt-2 text-xs leading-5 text-slate-500">{description}</p>
     </div>
   )
-}
-
- codex/continue-implementing-the-dashboard
-function EmptyState({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5 text-center">
-      <p className="text-sm font-semibold text-slate-700">{title}</p>
-      <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
-    </div>
-  )
-}
-
-function PriorityBadge({ priority }: { priority: string }) {
-  const tone = priority === "critical" ? "border-rose-200 bg-rose-50 text-rose-700" : priority === "high" ? "border-amber-200 bg-amber-50 text-amber-700" : "border-blue-200 bg-blue-50 text-blue-700"
-  return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase ${tone}`}>{priority}</span>
-
-function PriorityBadge({ priority }: { priority: string }) {
-  const tone = priority === "critical" ? "border-rose-200 bg-rose-50 text-rose-700" : priority === "high" ? "border-amber-200 bg-amber-50 text-amber-700" : "border-blue-200 bg-blue-50 text-blue-700"
-  return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black uppercase ${tone}`}>{priority}</span>
- main
 }

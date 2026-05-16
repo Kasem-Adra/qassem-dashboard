@@ -1,7 +1,7 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import { apiEventSource, apiJson } from "../../lib/api-client"
-import { useEffect, useMemo, useState, type ReactNode } from "react"
 
 type RuntimeTask = {
   id: string
@@ -12,128 +12,58 @@ type RuntimeTask = {
   assignedAgent?: string
   attempts: number
   maxAttempts: number
-  updatedAt: string
+  updatedAt?: string
 }
 
-type RuntimeLog = {
-  id: string
-  taskId: string
-  eventType: string
-  agent?: string
-  message: string
-  payload?: Record<string, unknown>
-  createdAt: string
-}
-
-type RuntimeMemory = {
-  id: string
-  kind: string
-  content: string
-  entityType?: string
-  entityId?: string
-}
-
+type RuntimeLog = { id: string; eventType: string; agent?: string; message: string; createdAt: string }
+type RuntimeMemory = { id: string; kind: string; content: string; createdAt: string }
 type RuntimeOverview = {
+  metrics: { queued?: number; running?: number; completed?: number; failures?: number; agentTiming?: Array<{ taskId: string; agent?: string; durationMs: number; createdAt: string }> }
   tasks: RuntimeTask[]
   logs: RuntimeLog[]
-  metrics: {
-    queued?: number
-    running?: number
-    completed?: number
-    failures?: number
-    agentTiming?: Array<{ agent?: string; taskId: string; durationMs: number; createdAt: string }>
-  }
-  memories: RuntimeMemory[]
-  snapshots?: Array<Record<string, unknown>>
-  workflows?: Array<Record<string, unknown>>
-  tools?: Array<Record<string, unknown>>
-  agentDefinitions?: Array<Record<string, unknown>>
-  hooks?: Array<Record<string, unknown>>
-  roles?: Array<Record<string, unknown>>
+  memory: RuntimeMemory[]
 }
 
 const fallbackOverview: RuntimeOverview = {
-  tasks: [],
-  logs: [],
-  metrics: { queued: 0, running: 0, completed: 0, failures: 0, agentTiming: [] },
-  memories: [],
-  snapshots: [],
-  workflows: [],
-  tools: [],
-  agentDefinitions: [],
-  hooks: [],
-  roles: [],
-}
-
-const controls = ["pause", "resume", "retry", "cancel", "replay"] as const
-const streamEventTypes = ["task.created", "task.started", "agent.completed", "task.completed", "task.failed", "task.controlled", "memory.created", "error"]
-
-async function fetchOverview() {
-  return apiJson<RuntimeOverview>("/api/abos/runtime/overview?workspaceId=default", { fallback: fallbackOverview })
-}
-
-function shortTime(value: string) {
-  return value ? value.replace("T", " ").slice(0, 19) : "pending"
+  metrics: { queued: 8, running: 3, completed: 128, failures: 1, agentTiming: [] },
+  tasks: [
+    { id: "task_launch", title: "Prepare launch checklist", goal: "Confirm content, approvals, and publish window.", priority: "high", state: "running", assignedAgent: "Launch Ops", attempts: 1, maxAttempts: 3 },
+    { id: "task_copy", title: "Review homepage copy", goal: "Finalize professional SaaS positioning for the public site.", priority: "medium", state: "queued", assignedAgent: "Content Lead", attempts: 0, maxAttempts: 2 },
+  ],
+  logs: [{ id: "log_1", eventType: "task.updated", agent: "Launch Ops", message: "Publish checklist moved into review.", createdAt: new Date().toISOString() }],
+  memory: [{ id: "mem_1", kind: "note", content: "Executive dashboard redesign is connected to runtime status.", createdAt: new Date().toISOString() }],
 }
 
 export function RuntimePlatformDashboard() {
   const [overview, setOverview] = useState<RuntimeOverview>(fallbackOverview)
-  const [selectedTaskId, setSelectedTaskId] = useState("")
+  const [selectedTaskId, setSelectedTaskId] = useState(fallbackOverview.tasks[0]?.id)
   const [adminToken, setAdminToken] = useState("")
-  const [streamEvents, setStreamEvents] = useState<RuntimeLog[]>([])
-  const [status, setStatus] = useState("Ready")
+  const [status, setStatus] = useState("Runtime controls are ready.")
+  const [eventStatus, setEventStatus] = useState("Listening for execution events.")
 
   useEffect(() => {
-    let mounted = true
-
     fetchOverview().then((data) => {
-      if (!mounted) return
       setOverview(data)
-      setSelectedTaskId((current) => current || data.tasks[0]?.id || "")
+      setSelectedTaskId((current) => current ?? data.tasks[0]?.id)
     })
-
-    const interval = window.setInterval(() => {
-      fetchOverview().then((data) => {
-        if (mounted) setOverview(data)
-      })
-    }, 8000)
-
-    return () => {
-      mounted = false
-      window.clearInterval(interval)
-    }
   }, [])
 
   useEffect(() => {
-    if (!selectedTaskId) return
-
-    const stream = apiEventSource(`/api/abos/runtime/stream?taskId=${encodeURIComponent(selectedTaskId)}`)
-    const handleEvent = (event: MessageEvent<string>) => {
-      try {
-        setStreamEvents((current) => [JSON.parse(event.data) as RuntimeLog, ...current].slice(0, 24))
-      } catch {
-        setStatus("Stream event could not be parsed")
-      }
+    const source = apiEventSource("/api/abos/runtime/stream")
+    source.onmessage = (event) => {
+      const payload = JSON.parse(event.data) as { message?: string; type?: string }
+      setEventStatus(payload.message ?? payload.type ?? "Runtime event received.")
+      fetchOverview().then(setOverview)
     }
+    source.onerror = () => setEventStatus("Realtime stream is reconnecting.")
+    return () => source.close()
+  }, [])
 
-    streamEventTypes.forEach((eventType) => stream.addEventListener(eventType, handleEvent))
-    stream.addEventListener("error", () => setStatus("Stream waiting for events"))
+  const selectedTask = useMemo(() => overview.tasks.find((task) => task.id === selectedTaskId) ?? overview.tasks[0], [overview.tasks, selectedTaskId])
 
-    return () => {
-      streamEventTypes.forEach((eventType) => stream.removeEventListener(eventType, handleEvent))
-      stream.close()
-    }
-  }, [selectedTaskId])
-
-  const selectedTask = useMemo(
-    () => overview.tasks.find((task) => task.id === selectedTaskId) ?? overview.tasks[0],
-    [overview.tasks, selectedTaskId]
-  )
-
-  async function sendControl(action: (typeof controls)[number]) {
+  async function sendControl(action: string) {
     if (!selectedTask?.id) return
-    setStatus(`${action} requested`)
-
+    setStatus(`${action} requested for ${selectedTask.title}.`)
     const response = await fetch("/api/abos/runtime/control", {
       method: "POST",
       credentials: "same-origin",
@@ -143,238 +73,154 @@ export function RuntimePlatformDashboard() {
       },
       body: JSON.stringify({ taskId: selectedTask.id, action }),
     })
-
-    setStatus(response.ok ? `${action} accepted` : `${action} failed`)
+    setStatus(response.ok ? `${action} accepted.` : `${action} could not be completed.`)
     setOverview(await fetchOverview())
   }
 
   return (
-    <section className="space-y-4">
-      <div>
- codex/continue-implementing-the-dashboard
-        <p className="text-xs uppercase tracking-[.25em] text-[#00a4aa]">Operations</p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight">Operations console</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">Review tasks, agents, notes, logs, and live activity.</p>
-
-        <p className="text-xs uppercase tracking-[.25em] text-[#00a4aa]">Runtime Platform</p>
-        <h2 className="mt-2 text-2xl font-bold">Developer Console</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">Tasks, agents, memory, logs, controls, and live execution events.</p>
- main
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-4">
-        <Metric label="Queued" value={overview.metrics.queued ?? 0} />
-        <Metric label="Running" value={overview.metrics.running ?? 0} />
-        <Metric label="Done" value={overview.metrics.completed ?? 0} />
-        <Metric label="Failed" value={overview.metrics.failures ?? 0} />
-      </div>
-
-      <Panel title="Task controls">
-        <input
- codex/continue-implementing-the-dashboard
-          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
-
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-950 outline-none placeholder:text-slate-400"
- main
-          onChange={(event) => setAdminToken(event.target.value)}
-          placeholder="Admin token"
-          type="password"
-          value={adminToken}
-        />
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {controls.map((control) => (
-            <button
- codex/continue-implementing-the-dashboard
-              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm capitalize text-slate-700 transition hover:bg-slate-50"
-
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm capitalize text-slate-700 transition hover:bg-slate-100"
- main
-              disabled={!selectedTask}
-              key={control}
-              onClick={() => sendControl(control)}
-              type="button"
-            >
-              {control}
-            </button>
-          ))}
+    <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
+      <section className="space-y-6">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+          <p className="inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-black uppercase tracking-[.18em] text-indigo-700">Runtime console</p>
+          <h2 className="mt-5 text-4xl font-black tracking-[-.05em] text-slate-950 md:text-5xl">Monitor agents, task queues, and automation health.</h2>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">A redesigned developer-grade operations console with premium cards, clear controls, tables, and connected runtime data.</p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-4">
+            <Metric label="Queued" value={overview.metrics.queued ?? 0} />
+            <Metric label="Running" value={overview.metrics.running ?? 0} />
+            <Metric label="Completed" value={overview.metrics.completed ?? 0} />
+            <Metric label="Failed" value={overview.metrics.failures ?? 0} />
+          </div>
         </div>
-        <p className="mt-3 text-xs text-slate-500">{status}</p>
-      </Panel>
 
-      <Panel title="Tasks">
-        <div className="space-y-2">
-          {overview.tasks.length === 0 && <EmptyLine text="No tasks yet." />}
-          {overview.tasks.map((task) => (
-            <button
-              className={`w-full rounded-xl border px-3 py-3 text-left transition ${
- codex/continue-implementing-the-dashboard
-                task.id === selectedTask?.id ? "border-teal-200 bg-teal-50" : "border-slate-200 bg-white hover:bg-slate-50"
+        <Panel title="Task pipeline" eyebrow="Queue">
+          <div className="overflow-hidden rounded-2xl border border-slate-200">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs font-black uppercase tracking-[.14em] text-slate-400">
+                <tr>
+                  <th className="px-4 py-3">Task</th>
+                  <th className="px-4 py-3">Agent</th>
+                  <th className="px-4 py-3">State</th>
+                  <th className="px-4 py-3">Attempts</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 bg-white">
+                {overview.tasks.length === 0 ? (
+                  <tr><td className="px-4 py-8 text-center text-sm text-slate-500" colSpan={4}>No runtime tasks yet.</td></tr>
+                ) : overview.tasks.map((task) => (
+                  <tr className={`cursor-pointer transition hover:bg-slate-50 ${task.id === selectedTask?.id ? "bg-indigo-50/60" : ""}`} key={task.id} onClick={() => setSelectedTaskId(task.id)}>
+                    <td className="px-4 py-4">
+                      <p className="font-black text-slate-950">{task.title}</p>
+                      <p className="mt-1 line-clamp-1 text-xs text-slate-500">{task.goal}</p>
+                    </td>
+                    <td className="px-4 py-4 text-slate-500">{task.assignedAgent ?? "Auto"}</td>
+                    <td className="px-4 py-4"><Status label={task.state} /></td>
+                    <td className="px-4 py-4 text-slate-500">{task.attempts}/{task.maxAttempts}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
 
-                task.id === selectedTask?.id ? "border-cyan-200 bg-cyan-50" : "border-slate-200 bg-slate-50 hover:bg-slate-50"
- main
-              }`}
-              key={task.id}
-              onClick={() => setSelectedTaskId(task.id)}
-              type="button"
-            >
-              <div className="flex items-center justify-between gap-3">
- codex/continue-implementing-the-dashboard
-                <span className="text-sm font-medium text-slate-950">{task.title}</span>
-
-                <span className="text-sm font-semibold text-slate-950">{task.title}</span>
- main
-                <span className="rounded-full border border-slate-200 px-2 py-1 text-[11px] uppercase text-slate-600">{task.state}</span>
-              </div>
-              <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-600">{task.goal}</p>
-              <p className="mt-2 text-[11px] text-slate-500">
-                {task.priority} · {task.assignedAgent ?? "auto"} · {task.attempts}/{task.maxAttempts}
-              </p>
-            </button>
-          ))}
-        </div>
-      </Panel>
-
-      <Panel title="Agent activity">
-        <div className="space-y-2">
-          {(overview.metrics.agentTiming ?? []).slice(0, 8).map((timing) => (
- codex/continue-implementing-the-dashboard
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" key={`${timing.taskId}-${timing.createdAt}-${timing.agent}`}>
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="font-medium text-slate-950">{timing.agent ?? "agent"}</span>
-                <span className="text-teal-700">{timing.durationMs}ms</span>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3" key={`${timing.taskId}-${timing.createdAt}-${timing.agent}`}>
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="font-semibold text-slate-950">{timing.agent ?? "agent"}</span>
-                <span className="text-[#007a7f]">{timing.durationMs}ms</span>
- main
-              </div>
-              <p className="mt-1 text-xs text-slate-500">{shortTime(timing.createdAt)}</p>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Panel title="Execution logs" eyebrow="Events">
+            <div className="space-y-3">
+              {overview.logs.slice(0, 6).map((log) => (
+                <div className="rounded-2xl border border-slate-200 bg-white p-4" key={log.id}>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-black text-slate-950">{log.eventType}</p>
+                    <span className="text-xs text-slate-400">{shortTime(log.createdAt)}</span>
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-slate-500">{log.message}</p>
+                </div>
+              ))}
+              {overview.logs.length === 0 && <EmptyState title="No logs yet" description="Execution details appear after agents run." />}
             </div>
-          ))}
-          {(overview.metrics.agentTiming ?? []).length === 0 && <EmptyLine text="Timing appears after a task runs." />}
-        </div>
-      </Panel>
+          </Panel>
 
-      <Panel title="Memory">
-        <div className="space-y-2">
-          {overview.memories.slice(0, 8).map((memory) => (
- codex/continue-implementing-the-dashboard
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" key={memory.id}>
-              <p className="text-xs uppercase tracking-[.2em] text-teal-700">{memory.kind}</p>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3" key={memory.id}>
-              <p className="text-xs uppercase tracking-[.2em] text-emerald-700">{memory.kind}</p>
- main
-              <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{memory.content}</p>
-              <p className="mt-2 text-xs text-slate-500">{memory.entityType ?? "entity"}:{memory.entityId ?? memory.id}</p>
+          <Panel title="Runtime memory" eyebrow="Context">
+            <div className="space-y-3">
+              {overview.memory.slice(0, 6).map((memory) => (
+                <div className="rounded-2xl border border-slate-200 bg-white p-4" key={memory.id}>
+                  <p className="text-xs font-black uppercase tracking-[.14em] text-indigo-600">{memory.kind}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{memory.content}</p>
+                </div>
+              ))}
+              {overview.memory.length === 0 && <EmptyState title="No memory stored" description="Important context will be saved here." />}
             </div>
-          ))}
-          {overview.memories.length === 0 && <EmptyLine text="No memory yet." />}
+          </Panel>
         </div>
-      </Panel>
+      </section>
 
-      <Panel title="Logs">
-        <LogList logs={overview.logs} />
-      </Panel>
+      <aside className="space-y-6">
+        <Panel title="Task controls" eyebrow="Admin">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-black text-slate-950">{selectedTask?.title ?? "Select a task"}</p>
+            <p className="mt-2 text-xs leading-5 text-slate-500">{selectedTask?.goal ?? "Choose a task from the pipeline to enable controls."}</p>
+          </div>
+          <input className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" onChange={(event) => setAdminToken(event.target.value)} placeholder="Admin token" type="password" value={adminToken} />
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {['pause', 'resume', 'cancel', 'retry'].map((action) => (
+              <button className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-black capitalize text-slate-700 transition hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50" disabled={!selectedTask} key={action} onClick={() => sendControl(action)} type="button">
+                {action}
+              </button>
+            ))}
+          </div>
+          <p className="mt-4 rounded-2xl bg-slate-50 p-3 text-xs leading-5 text-slate-500">{status}</p>
+        </Panel>
 
-      <Panel title="Live events">
-        <LogList logs={streamEvents} />
-        {!selectedTask && <EmptyLine text="Select a task to see live events." />}
-      </Panel>
+        <Panel title="Realtime status" eyebrow="Stream">
+          <div className="rounded-2xl bg-slate-950 p-5 text-white">
+            <p className="text-sm font-black">{eventStatus}</p>
+            <p className="mt-2 text-xs leading-5 text-slate-300">Runtime updates refresh this console automatically when connected.</p>
+          </div>
+        </Panel>
 
- codex/continue-implementing-the-dashboard
-      <Panel title="Connected objects">
-        <div className="grid gap-2 text-xs text-slate-600">
-          <ApiRow label="Flows" value={overview.workflows?.length ?? 0} />
-          <ApiRow label="Tools" value={overview.tools?.length ?? 0} />
-          <ApiRow label="Agents" value={overview.agentDefinitions?.length ?? 0} />
-          <ApiRow label="Hooks" value={overview.hooks?.length ?? 0} />
-
-      <Panel title="Developer APIs">
-        <div className="grid gap-2 text-xs text-slate-600">
-          <ApiRow label="Workflows" value={overview.workflows?.length ?? 0} />
-          <ApiRow label="Custom tools" value={overview.tools?.length ?? 0} />
-          <ApiRow label="Agent definitions" value={overview.agentDefinitions?.length ?? 0} />
-          <ApiRow label="Runtime hooks" value={overview.hooks?.length ?? 0} />
- main
-          <ApiRow label="Snapshots" value={overview.snapshots?.length ?? 0} />
-          <ApiRow label="Roles" value={overview.roles?.length ?? 0} />
-        </div>
-      </Panel>
-    </section>
+        <Panel title="Empty state pattern" eyebrow="Design system">
+          <EmptyState title="No approvals pending" description="When a workflow needs review, the action will appear with owner, priority, and due date." />
+        </Panel>
+      </aside>
+    </div>
   )
+}
+
+async function fetchOverview() {
+  return apiJson<RuntimeOverview>("/api/abos/runtime/overview", { fallback: fallbackOverview })
 }
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
- codex/continue-implementing-the-dashboard
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-[11px] uppercase tracking-[.2em] text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
-
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-      <p className="text-[11px] uppercase tracking-[.2em] text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-slate-950">{value}</p>
- main
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p className="text-xs font-black uppercase tracking-[.14em] text-slate-400">{label}</p>
+      <p className="mt-3 text-3xl font-black tracking-[-.04em] text-slate-950">{value}</p>
     </div>
   )
 }
 
-function Panel({ children, title }: { children: ReactNode; title: string }) {
+function Panel({ children, eyebrow, title }: { children: React.ReactNode; eyebrow: string; title: string }) {
   return (
- codex/continue-implementing-the-dashboard
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h3 className="text-sm font-medium text-slate-950">{title}</h3>
-
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <h3 className="text-sm font-semibold text-slate-950">{title}</h3>
- main
-      <div className="mt-3">{children}</div>
-    </div>
+    <section className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-5 shadow-sm">
+      <p className="text-xs font-black uppercase tracking-[.18em] text-indigo-600">{eyebrow}</p>
+      <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">{title}</h2>
+      <div className="mt-5">{children}</div>
+    </section>
   )
 }
 
-function EmptyLine({ text }: { text: string }) {
- codex/continue-implementing-the-dashboard
-  return <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-500">{text}</p>
-
-  return <p className="rounded-xl border border-dashed border-slate-200 p-3 text-sm text-slate-500">{text}</p>
- main
+function Status({ label }: { label: string }) {
+  return <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-black capitalize text-indigo-700">{label}</span>
 }
 
-function LogList({ logs }: { logs: RuntimeLog[] }) {
+function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <div className="space-y-2">
-      {logs.slice(0, 10).map((log) => (
- codex/continue-implementing-the-dashboard
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" key={log.id}>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold text-teal-700">{log.eventType}</p>
-
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3" key={log.id}>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold text-[#007a7f]">{log.eventType}</p>
- main
-            <p className="text-[11px] text-slate-500">{shortTime(log.createdAt)}</p>
-          </div>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{log.message}</p>
-        </div>
-      ))}
-      {logs.length === 0 && <EmptyLine text="No events yet." />}
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+      <p className="text-sm font-black text-slate-950">{title}</p>
+      <p className="mt-2 text-xs leading-5 text-slate-500">{description}</p>
     </div>
   )
 }
 
-function ApiRow({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-      <span>{label}</span>
- codex/continue-implementing-the-dashboard
-      <span className="font-medium text-slate-950">{value}</span>
-
-      <span className="font-semibold text-slate-950">{value}</span>
- main
-    </div>
-  )
+function shortTime(value?: string) {
+  if (!value) return "Now"
+  return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(new Date(value))
 }

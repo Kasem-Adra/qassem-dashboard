@@ -1,9 +1,9 @@
-import './globals.css'
 import type { Metadata } from 'next'
+import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Qassem AI OS',
-  description: 'Enterprise AI-native workspace operating system.'
+  title: 'Qassem Cloud',
+  description: 'Premium SaaS workspace for content, operations, and AI workflows.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

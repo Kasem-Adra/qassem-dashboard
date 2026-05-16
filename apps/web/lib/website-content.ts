@@ -45,106 +45,70 @@ export interface WebsiteContent {
 
 export const defaultWebsiteContent: WebsiteContent = {
   settings: {
-    accent: "#00b3b8",
- codex/continue-implementing-the-dashboard
-    announcement: "One workspace for your site and operations",
-    logoText: "Qassem Studio",
+    accent: '#635bff',
+    announcement: 'New command center for modern service teams',
+    logoText: 'Qassem Cloud',
   },
   nav: [
-    { label: "Product", href: "#platform" },
-    { label: "Results", href: "#proof" },
-    { label: "Dashboard", href: "/dashboard" },
-    { label: "Contact", href: "#contact" },
+    { label: 'Platform', href: '#platform' },
+    { label: 'Workflows', href: '#workflows' },
+    { label: 'Customers', href: '#customers' },
+    { label: 'Pricing', href: '#pricing' },
   ],
   hero: {
-    eyebrow: "AI operations studio",
-    title: "Manage your website and operations in one calm workspace.",
+    eyebrow: 'Premium operations workspace',
+    title: 'Run content, clients, and AI operations from one polished dashboard.',
     subtitle:
-      "Plan content, review risk, and coordinate AI work without adding another tool to the stack.",
-    primaryButton: { label: "Explore product", href: "#platform" },
-    secondaryButton: { label: "Open dashboard", href: "/dashboard" },
+      'Qassem Cloud gives growing teams a crisp operating layer for publishing, executive visibility, automated workflows, and high-confidence decisions.',
+    primaryButton: { label: 'Explore the platform', href: '#platform' },
+    secondaryButton: { label: 'Open dashboard', href: '/dashboard' },
   },
   stats: [
-    { value: "87%", label: "health score" },
-    { value: "24/7", label: "live monitoring" },
-    { value: "12+", label: "workflows" },
+    { value: '99.9%', label: 'workspace uptime' },
+    { value: '42k', label: 'events processed' },
+    { value: '18m', label: 'avg. weekly time saved' },
   ],
   features: [
     {
-      title: "Site control",
+      title: 'Content studio',
       description:
-        "Update pages, sections, buttons, cards, and links from the dashboard.",
+        'Launch homepage updates, landing sections, and conversion copy from an elegant editorial workflow.',
     },
     {
-      title: "Operations desk",
-      description: "Keep tasks, signals, notes, and decisions easy to review.",
-    },
-    {
-      title: "Polished publishing",
+      title: 'Operations cockpit',
       description:
-        "Ship a clean public site with focused copy, clear cards, and sharp calls to action.",
-
-    announcement: "AI-native operating systems for premium teams",
-    logoText: "Qassem OS",
-  },
-  nav: [
-    { label: "Platform", href: "#platform" },
-    { label: "Solutions", href: "#solutions" },
-    { label: "Proof", href: "#proof" },
-    { label: "Contact", href: "#contact" },
-  ],
-  hero: {
-    eyebrow: "Digital systems architecture",
-    title: "Build a cleaner operating layer for AI-powered companies.",
-    subtitle:
-      "Qassem OS brings strategy, automation, cloud infrastructure, and operational intelligence into one premium workspace your team can actually manage.",
-    primaryButton: { label: "Explore platform", href: "#platform" },
-    secondaryButton: { label: "Open dashboard", href: "/dashboard" },
-  },
-  stats: [
-    { value: "87%", label: "operational health" },
-    { value: "24/7", label: "runtime monitoring" },
-    { value: "12+", label: "AI workflows" },
-  ],
-  features: [
-    {
-      title: "Content command center",
-      description: "Manage hero copy, sections, CTAs, cards, and navigation from the dashboard control plane.",
+        'Track active work, owners, risk, status, and notes in one command surface designed for leaders.',
     },
     {
-      title: "Autonomous operations",
-      description: "Connect runtime tasks, memory, agents, and decision logs to business-facing website experiences.",
-    },
-    {
-      title: "Premium SaaS presentation",
-      description: "A modern Storyblok-inspired interface with clean cards, spacing, typography, and conversion-focused flows.",
- main
+      title: 'AI workflow layer',
+      description:
+        'Coordinate agents, runtime tasks, memory, and approvals without exposing complexity to your team.',
     },
   ],
   caseStudies: [
     {
- codex/continue-implementing-the-dashboard
-      title: "Client onboarding",
+      title: 'Client success workspace',
       description:
-        "The dashboard surfaced blockers early enough for the team to act.",
-      metric: "$330K in view",
+        'A boutique services team consolidated launch plans, approvals, and risk reviews into one view.',
+      metric: '31% faster launches',
     },
     {
-      title: "Action queue",
-      description: "Signals became a short, prioritized list for the team.",
-      metric: "8 actions ready",
+      title: 'Executive operating rhythm',
+      description:
+        'Leadership replaced scattered status meetings with live dashboards and prioritized action queues.',
+      metric: '8 hrs saved weekly',
     },
   ],
   cta: {
-    title: "Make your website easy to manage.",
+    title: 'Give your team a calmer way to operate.',
     description:
-      "Edit the site, review operations, and publish updates from one focused workspace.",
-    primaryButton: { label: "Manage site", href: "/dashboard" },
+      'Use the dashboard to align website messaging, operational work, AI tasks, and executive reporting in one premium workspace.',
+    primaryButton: { label: 'Manage workspace', href: '/dashboard' },
   },
 }
 
 function cloneWebsiteContent(content: WebsiteContent): WebsiteContent {
-  return structuredClone(content)
+  return JSON.parse(JSON.stringify(content)) as WebsiteContent
 }
 
 let websiteContent: WebsiteContent = cloneWebsiteContent(defaultWebsiteContent)
@@ -161,32 +125,4 @@ export function updateWebsiteContent(content: WebsiteContent) {
 export function resetWebsiteContent() {
   websiteContent = cloneWebsiteContent(defaultWebsiteContent)
   return getWebsiteContent()
-
-      title: "Enterprise onboarding",
-      description: "Predictive risk surfaced delivery blockers before revenue impact escalated.",
-      metric: "$330K monitored",
-    },
-    {
-      title: "Executive automation",
-      description: "AI recommendations turned scattered operational signals into a prioritized action queue.",
-      metric: "8 AI actions",
-    },
-  ],
-  cta: {
-    title: "Ready to operate from one source of truth?",
-    description: "Use the dashboard to tune the public website and keep operations, content, and AI workflows aligned.",
-    primaryButton: { label: "Manage in dashboard", href: "/dashboard" },
-  },
-}
-
-let websiteContent: WebsiteContent = defaultWebsiteContent
-
-export function getWebsiteContent() {
-  return websiteContent
-}
-
-export function updateWebsiteContent(content: WebsiteContent) {
-  websiteContent = content
-  return websiteContent
- main
 }

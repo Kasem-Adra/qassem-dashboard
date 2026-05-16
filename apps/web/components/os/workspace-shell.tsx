@@ -1,144 +1,85 @@
-import { CommandPalette } from './command-palette'
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
-const modules = ['Assistant', 'Content', 'Theme', 'Media', 'Analytics', 'Security', 'Settings']
-const surfaces = [
-  ['Assistant', 'Draft prompts and review streamed responses.'],
-  ['Content', 'Manage homepage sections, links, and cards.'],
-  ['Theme', 'Preview colors, spacing, and motion.'],
-  ['Status', 'Review connected services and storage.']
+const navItems = [
+  { label: 'Overview', href: '/dashboard', badge: 'Live' },
+  { label: 'Runtime', href: '/runtime', badge: 'Ops' },
+  { label: 'Studio', href: '/workspace', badge: 'AI' },
+  { label: 'Content', href: '/', badge: 'Site' },
+  { label: 'Settings', href: '#settings', badge: 'New' },
+]
+
+const quickStats = [
+  ['Health', '92%'],
+  ['Tasks', '18'],
+  ['SLA', '99.9%'],
 ]
 
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   return (
- codex/continue-implementing-the-dashboard
-    <main className="min-h-screen bg-slate-50 text-slate-950">
-      <CommandPalette />
-      <div className="grid min-h-screen lg:grid-cols-[264px_1fr]">
-        <aside className="border-r border-slate-200 bg-white px-4 py-5">
-          <div className="flex items-center gap-3 px-2">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-slate-950 text-sm font-semibold text-white">Q</div>
-            <div>
-              <p className="text-sm font-semibold tracking-tight">Qassem Studio</p>
-              <p className="text-xs text-slate-500">Workspace</p>
+    <main className="min-h-screen bg-[#f5f6fa] text-slate-950">
+      <div className="grid min-h-screen lg:grid-cols-[288px_1fr]">
+        <aside className="sticky top-0 hidden h-screen flex-col border-r border-slate-200/80 bg-white/85 px-4 py-5 backdrop-blur-2xl lg:flex">
+          <a className="flex items-center gap-3 rounded-2xl px-2 py-2" href="/dashboard" aria-label="Qassem Cloud dashboard">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-slate-950 text-sm font-black text-white shadow-sm">Q</span>
+            <span>
+              <span className="block text-sm font-black tracking-tight text-slate-950">Qassem Cloud</span>
+              <span className="block text-xs font-medium text-slate-500">Premium workspace</span>
+            </span>
+          </a>
+
+          <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-3">
+            <div className="grid grid-cols-3 gap-2">
+              {quickStats.map(([label, value]) => (
+                <div className="rounded-2xl bg-white p-3 text-center shadow-sm" key={label}>
+                  <p className="text-sm font-black tracking-tight text-slate-950">{value}</p>
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-[.12em] text-slate-400">{label}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          <nav className="mt-8 space-y-1" aria-label="Workspace navigation">
-
-    <main className="min-h-screen bg-[#f7f8fb] text-slate-950">
-      <CommandPalette />
-      <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
-        <aside className="border-r border-slate-200 bg-white px-5 py-6">
-          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#00b3b8] text-lg font-black text-white shadow-sm">Q</div>
-            <div>
-              <p className="text-sm font-bold text-slate-950">Qassem OS</p>
-              <p className="text-xs text-slate-500">Workspace runtime</p>
-            </div>
-          </div>
-
-          <div className="mt-8 rounded-2xl border border-cyan-100 bg-cyan-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[.2em] text-[#007a7f]">Workspace OS</p>
-            <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">Command Center</h2>
-            <p className="mt-2 text-xs leading-5 text-slate-600">Press ⌘K to open the universal command layer.</p>
-          </div>
-
-          <nav className="mt-6 space-y-1">
- main
-            {modules.map((module, index) => (
-              <button
-                key={module}
-                className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
- codex/continue-implementing-the-dashboard
-                  index === 0 ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
-
-                  index === 0 ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'
- main
+          <nav className="mt-6 space-y-1" aria-label="Workspace navigation">
+            {navItems.map((item, index) => (
+              <a
+                className={`group flex items-center justify-between rounded-2xl px-3 py-3 text-sm font-bold transition ${
+                  index === 0 ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
                 }`}
-                type="button"
+                href={item.href}
+                key={item.label}
               >
-                <span>{module}</span>
- codex/continue-implementing-the-dashboard
-
-                {index === 0 && <span className="h-2 w-2 rounded-full bg-[#00d5dc]" />}
- main
-              </button>
+                <span className="flex items-center gap-3">
+                  <span className={`h-2.5 w-2.5 rounded-full ${index === 0 ? 'bg-indigo-400' : 'bg-slate-300 group-hover:bg-indigo-400'}`} />
+                  {item.label}
+                </span>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[.12em] ${index === 0 ? 'bg-white/10 text-white' : 'bg-white text-slate-400'}`}>{item.badge}</span>
+              </a>
             ))}
           </nav>
+
+          <div className="mt-auto rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm" id="settings">
+            <p className="text-xs font-black uppercase tracking-[.18em] text-indigo-600">Settings</p>
+            <h2 className="mt-3 text-sm font-black tracking-tight text-slate-950">Workspace controls</h2>
+            <p className="mt-2 text-xs leading-5 text-slate-500">Manage roles, billing, publishing, integrations, and approval rules from one consistent settings area.</p>
+            <button className="mt-4 w-full rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white" type="button">Configure</button>
+          </div>
         </aside>
 
-codex/continue-implementing-the-dashboard
         <section className="min-w-0">
-          <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-5 py-4 backdrop-blur-xl lg:px-8">
+          <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 px-5 py-4 backdrop-blur-2xl lg:px-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[.18em] text-teal-700">Workspace</p>
-                <h1 className="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">Build, review, and publish.</h1>
+                <p className="text-xs font-black uppercase tracking-[.22em] text-indigo-600">Command center</p>
+                <h1 className="mt-1 text-2xl font-black tracking-[-.035em] text-slate-950 md:text-3xl">Operate every surface from one place</h1>
               </div>
               <div className="flex items-center gap-3">
-                <div className="hidden min-w-72 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500 md:block">Search content, agents, workflows...</div>
-                <kbd className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-500 shadow-sm">⌘K</kbd>
-
-        <section className="flex min-w-0 flex-col">
-          <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 px-6 py-4 backdrop-blur-xl lg:px-8">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[.22em] text-[#00a4aa]">Live Surface</p>
-                <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">AI Workspace Runtime</h1>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="hidden min-w-64 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-500 md:block">Search content, agents, and workflows...</div>
-                <kbd className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500 shadow-sm">⌘K</kbd>
- main
+                <div className="hidden min-w-72 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-500 md:block">Search projects, tasks, risks, and content...</div>
+                <kbd className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-500 shadow-sm">⌘K</kbd>
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700">Online</span>
               </div>
             </div>
           </header>
 
- codex/continue-implementing-the-dashboard
-          <div className="grid gap-6 p-5 lg:grid-cols-[1fr_420px] lg:p-8">
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[.18em] text-teal-700">Canvas</p>
-                  <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Core surfaces</h2>
-                </div>
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">Ready</span>
-
-          <div className="grid flex-1 gap-6 p-6 lg:grid-cols-[1fr_420px] lg:p-8">
-            <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[.2em] text-[#00a4aa]">Workspace canvas</p>
-                  <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Operational surfaces</h2>
-                </div>
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700">All systems ready</span>
- main
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                {surfaces.map(([title, description]) => (
- codex/continue-implementing-the-dashboard
-                  <article key={title} className="min-h-40 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-teal-50 text-sm font-semibold text-teal-700">{title.slice(0, 2)}</div>
-                    <p className="mt-4 text-base font-semibold text-slate-950">{title}</p>
-
-                  <article key={title} className="min-h-44 rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#ecfeff] text-sm font-black text-[#007a7f]">{title.slice(0, 2)}</div>
-                    <p className="mt-4 text-base font-black text-slate-950">{title}</p>
- main
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
-                  </article>
-                ))}
-              </div>
-            </section>
-
- codex/continue-implementing-the-dashboard
-            <aside className="min-h-[620px] rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">{children}</aside>
-
-            <aside className="min-h-[620px] rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm">{children}</aside>
- main
-          </div>
+          <div className="p-5 lg:p-8">{children}</div>
         </section>
       </div>
     </main>
