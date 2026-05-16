@@ -40,6 +40,54 @@ export const aiStreamSchema = z.object({
 export type AddMemoryInput = z.infer<typeof addMemorySchema>
 export type AIStreamInput = z.infer<typeof aiStreamSchema>
 
+export const authLoginSchema = z.object({
+  token: z.coerce.string().min(1),
+  role: z.enum(["admin", "operator"]).default("admin"),
+})
+
+export type AuthLoginInput = z.infer<typeof authLoginSchema>
+
+const websiteLinkSchema = z.object({
+  label: z.coerce.string().min(1).max(80),
+  href: z.coerce.string().min(1).max(300),
+})
+
+export const websiteContentSchema = z.object({
+  settings: z.object({
+    accent: z.coerce.string().min(1).max(40),
+    announcement: z.coerce.string().min(1).max(160),
+    logoText: z.coerce.string().min(1).max(80),
+  }),
+  nav: z.array(websiteLinkSchema).min(1).max(8),
+  hero: z.object({
+    eyebrow: z.coerce.string().min(1).max(120),
+    title: z.coerce.string().min(1).max(180),
+    subtitle: z.coerce.string().min(1).max(500),
+    primaryButton: websiteLinkSchema,
+    secondaryButton: websiteLinkSchema,
+  }),
+  stats: z.array(z.object({
+    value: z.coerce.string().min(1).max(40),
+    label: z.coerce.string().min(1).max(80),
+  })).min(1).max(6),
+  features: z.array(z.object({
+    title: z.coerce.string().min(1).max(120),
+    description: z.coerce.string().min(1).max(500),
+  })).min(1).max(8),
+  caseStudies: z.array(z.object({
+    title: z.coerce.string().min(1).max(120),
+    description: z.coerce.string().min(1).max(500),
+    metric: z.coerce.string().min(1).max(80),
+  })).min(1).max(6),
+  cta: z.object({
+    title: z.coerce.string().min(1).max(160),
+    description: z.coerce.string().min(1).max(500),
+    primaryButton: websiteLinkSchema,
+  }),
+})
+
+export type WebsiteContentInput = z.infer<typeof websiteContentSchema>
+
 export const runtimeCreateTaskSchema = z.object({
   workspaceId: z.coerce.string().min(1).default("default"),
   title: z.coerce.string().min(1).max(160),
