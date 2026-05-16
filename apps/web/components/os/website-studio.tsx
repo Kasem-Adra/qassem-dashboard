@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { apiJson } from "../../lib/api-client"
 import {
   defaultWebsiteContent,
@@ -20,14 +20,7 @@ export function WebsiteStudio() {
   const [authState, setAuthState] = useState<AuthState>({ status: "checking" })
   const [status, setStatus] = useState("Draft saved locally")
 
-  useEffect(() => {
-    apiJson<{ content: WebsiteContent }>("/api/site/content", {
-      fallback: { content: defaultWebsiteContent },
-    }).then((data) => setContent(data.content))
-    refreshSession()
-  }, [])
-
-  async function refreshSession() {
+  const refreshSession = useCallback(async () => {
     const session = await apiJson<
       | { ok: true; principal: { role: "admin" | "operator"; source: string } }
       | typeof authFallback
@@ -44,7 +37,22 @@ export function WebsiteStudio() {
 
     setAuthState({ status: "anonymous" })
     return false
-  }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    apiJson<{ content: WebsiteContent }>("/api/site/content", {
+      fallback: { content: defaultWebsiteContent },
+    }).then((data) => {
+      if (active) setContent(data.content)
+    })
+    refreshSession()
+
+    return () => {
+      active = false
+    }
+  }, [refreshSession])
 
   async function login() {
     if (!adminToken.trim()) {
