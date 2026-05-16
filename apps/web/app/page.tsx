@@ -1,5 +1,5 @@
-import { ABOSCortexDashboard } from "../components/os/abos-cortex-dashboard"
+import { PublicWebsite } from "../components/site/public-website"
 
 export default function HomePage() {
-  return <ABOSCortexDashboard />
+  return <PublicWebsite />
 }

@@ -158,8 +158,8 @@ export async function seedAbosDatabase() {
 
     await client.query(
       `INSERT INTO memory_events (type, title, description)
-       SELECT 'incident', 'Client escalation detected', 'ABOS detected high-priority onboarding escalation'
-       WHERE NOT EXISTS (SELECT 1 FROM memory_events WHERE title = 'Client escalation detected')`
+       SELECT 'incident', 'Client escalation logged', 'A high-priority onboarding issue needs attention'
+       WHERE NOT EXISTS (SELECT 1 FROM memory_events WHERE title = 'Client escalation logged')`
     )
 
     await client.query(`INSERT INTO live_metrics (operational_score, risk_score) VALUES (87, 32)`)

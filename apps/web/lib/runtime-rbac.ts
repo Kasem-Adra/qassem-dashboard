@@ -1,4 +1,4 @@
-import { jsonError, requireAdmin, type ApiHandler } from "./api"
+import { authenticateRequest, jsonError, type ApiHandler, type AuthenticatedPrincipal } from "./api"
 
 export type RuntimeRole = "admin" | "operator"
 
@@ -26,16 +26,15 @@ const roleScopes: Record<RuntimeRole, RuntimeScope[]> = {
   operator: ["runtime:read", "runtime:tasks:control"],
 }
 
-function runtimeRoleFromRequest(request: Request): RuntimeRole {
-  const role = request.headers.get("x-abos-role")
-  return role === "operator" ? "operator" : "admin"
+function runtimeRoleFromPrincipal(principal: AuthenticatedPrincipal): RuntimeRole {
+  return principal.role === "operator" ? "operator" : "admin"
 }
 
-export function requireRuntimeScope(request: Request, scope: RuntimeScope) {
-  const unauthorized = requireAdmin(request)
-  if (unauthorized) return unauthorized
+export async function requireRuntimeScope(request: Request, scope: RuntimeScope) {
+  const principal = await authenticateRequest(request)
+  if (principal instanceof Response) return principal
 
-  const role = runtimeRoleFromRequest(request)
+  const role = runtimeRoleFromPrincipal(principal)
   if (!roleScopes[role].includes(scope)) {
     return jsonError(`Missing runtime scope: ${scope}`, 403)
   }
@@ -44,8 +43,8 @@ export function requireRuntimeScope(request: Request, scope: RuntimeScope) {
 }
 
 export function withRuntimeScope(scope: RuntimeScope, handler: ApiHandler): ApiHandler {
-  return (request) => {
-    const denied = requireRuntimeScope(request, scope)
+  return async (request) => {
+    const denied = await requireRuntimeScope(request, scope)
     if (denied) return denied
     return handler(request)
   }
